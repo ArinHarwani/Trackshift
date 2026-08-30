@@ -93,7 +93,7 @@ export default function DecisionDisplay({ strategy, onPlayAudio }) {
             <TrendingUp size={14} color="var(--neon-green)" />
           </div>
           <div className="font-mono" style={{ fontSize: "1.6rem", fontWeight: 800, color: overtake_probability_pct >= 60 ? "var(--neon-green)" : overtake_probability_pct >= 40 ? "var(--neon-amber)" : "var(--text-muted)" }}>
-            {overtake_probability_pct.toFixed(0)}%
+            {overtake_probability_pct.toFixed(1)}%
           </div>
           <span style={{ fontSize: "0.65rem", color: "var(--text-dim)" }}>
             Target: +{expected_position_gain} Position

@@ -126,7 +126,7 @@ export default function AgentInspector({ rawOutputs }) {
               </span>
             </div>
             <span className="font-mono" style={{ fontSize: "0.85rem", fontWeight: 800, color: "var(--neon-green)" }}>
-              {overtake?.success_probability_pct?.toFixed(0)}%
+              {overtake?.success_probability_pct?.toFixed(1)}%
             </span>
           </div>
 

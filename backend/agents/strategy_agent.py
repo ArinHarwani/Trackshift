@@ -129,7 +129,7 @@ class StrategyAgent:
         system_prompt = (
             "You are a professional Formula 1 and Formula E race engineer communicating over the pit-wall radio to the driver. "
             "You are provided with strictly pre-computed mathematical strategy metrics. "
-            "CRITICAL RULE: You MUST NEVER invent, alter, or guess any numbers, probabilities, or deploy percentages. "
+            "CRITICAL RULE: You MUST NEVER invent, alter, or round differently any numbers, probabilities, or deploy percentages. "
             "Your ONLY job is to explain the provided numbers in 2 concise, authentic pit-radio sentences."
         )
 
@@ -138,12 +138,12 @@ class StrategyAgent:
             f"- Order: {headline}\n"
             f"- Recommended Action: {energy_out.recommended_action.upper()} ({energy_out.recommended_deploy_pct:+.1f}%)\n"
             f"- ERS Reserve: {state.energy_pct:.1f}% (Margin: {energy_out.rationale_data.energy_margin_pct:+.1f}%, covers {energy_out.laps_of_reserve_at_current_rate:.1f} laps for {state.laps_remaining} laps remaining)\n"
-            f"- Overtake Success Probability: {overtake_out.success_probability_pct:.0f}%\n"
+            f"- Overtake Success Probability: {overtake_out.success_probability_pct:.1f}%\n"
             f"- Expected Position Gain: +{overtake_out.expected_position_gain}\n"
             f"- Best Execution Window: {overtake_out.best_window.replace('_', ' ')}\n"
             f"- Gap to {state.rival_driver_name}: {state.gap_ahead_sec:.2f}s\n"
             f"- DRS Status: {'ACTIVE' if overtake_out.rationale_data.drs_assist else f'{state.drs_zone_ahead_m}m ahead'}\n"
-            f"- Opponent Profile: {opponent_out.opponent_profile} ({opponent_out.profile_confidence_pct:.0f}% confidence)\n"
+            f"- Opponent Profile: {opponent_out.opponent_profile} ({opponent_out.profile_confidence_pct:.1f}% confidence)\n"
             f"- Rules Status: {'COMPLIANT' if rules_out.compliant else 'VIOLATION PREVENTED'}\n\n"
             f"Synthesize a 2-sentence pit-radio explanation to the driver based strictly on these metrics."
         )
@@ -206,7 +206,7 @@ class StrategyAgent:
             return (
                 f"Box call: Target delta energy is in deficit ({energy_out.rationale_data.energy_margin_pct:+.1f}%). "
                 f"Current reserve ({energy_pct:.1f}%) covers only {energy_out.laps_of_reserve_at_current_rate:.1f} laps "
-                f"for {laps_left} remaining. Immediate {abs(energy_out.recommended_deploy_pct):.0f}% lift-and-coast "
+                f"for {laps_left} remaining. Immediate {abs(energy_out.recommended_deploy_pct):.1f}% lift-and-coast "
                 f"required to prevent battery clipping before the finish."
             )
 
@@ -216,14 +216,14 @@ class StrategyAgent:
                 f"Gap to {state.rival_driver_name} is {gap:.2f}s closing with {drs_text}. "
                 f"Energy reserve ({energy_pct:.1f}%) provides a safe +{energy_out.rationale_data.energy_margin_pct:.1f}% "
                 f"margin for the remaining {laps_left} laps. Opponent is profiled as {opp_profile} "
-                f"({opponent_out.profile_confidence_pct:.0f}% confidence). Overtake probability is "
-                f"{overtake_out.success_probability_pct:.0f}% — execute move within {overtake_out.best_window.replace('_', ' ')}."
+                f"({opponent_out.profile_confidence_pct:.1f}% confidence). Overtake probability is "
+                f"{overtake_out.success_probability_pct:.1f}% — execute move within {overtake_out.best_window.replace('_', ' ')}."
             )
 
         return (
             f"Holding formation P{state.track_position}. Gap ahead is {gap:.2f}s with {state.gap_behind_sec:.2f}s cushion behind. "
             f"Energy reserve is balanced ({energy_out.rationale_data.energy_margin_pct:+.1f}% margin). "
-            f"Tyre wear at {state.tyre_wear_pct:.0f}% ({state.tyre_compound} compound). Maintain hybrid deployment "
+            f"Tyre wear at {state.tyre_wear_pct:.1f}% ({state.tyre_compound} compound). Maintain hybrid deployment "
             f"and wait for the next pit/attack mode window."
         )
 
