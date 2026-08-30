@@ -233,6 +233,45 @@ class TestTrackShiftCopilot(unittest.TestCase):
             self.assertLessEqual(curr_state.tyre_wear_pct, 100.0)
             prev_state = curr_state
 
+    def test_11_baseline_comparison_monza(self):
+        """Test Baseline Comparison on Monza: Copilot outperforms Always-Conserve and Always-Attack."""
+        engine = BacktestingEngine()
+        comparison = engine.run_baseline_comparison("monza_2023_battle")
+        scorecards = comparison["scorecards"]
+
+        copilot = scorecards["copilot"]
+        conserve = scorecards["always_conserve"]
+        attack = scorecards["always_attack"]
+
+        # Copilot gains position and has 0 rule violations
+        self.assertEqual(copilot["rule_violations_count"], 0)
+        self.assertGreaterEqual(copilot["net_position_delta"], 0)
+        self.assertGreater(copilot["energy_remaining_pct"], 3.0)
+
+        # Conserve gains 0 positions and leaves high unused energy
+        self.assertEqual(conserve["rule_violations_count"], 0)
+        self.assertEqual(conserve["overtake_attempts"], 0)
+        self.assertGreater(conserve["energy_remaining_pct"], copilot["energy_remaining_pct"])
+
+        # Attack accumulates rule violations and finishes worse or depleted
+        self.assertGreater(attack["rule_violations_count"], 0)
+        self.assertLess(attack["energy_remaining_pct"], copilot["energy_remaining_pct"])
+
+    def test_12_all_baselines_summary_cross_circuit(self):
+        """Test 3-Circuit Baseline Summary across Monza, Silverstone, and Berlin."""
+        engine = BacktestingEngine()
+        summary = engine.run_all_scenarios_comparison()
+        
+        self.assertEqual(len(summary["per_circuit_reports"]), 3)
+        cross = summary["cross_circuit_summary"]
+        
+        # Copilot has 0 total violations across all 3 races
+        self.assertEqual(cross["copilot"]["total_rule_violations"], 0)
+        # Copilot average net delta is higher than both naive baselines
+        self.assertGreater(cross["copilot"]["avg_net_position_delta"], cross["always_conserve"]["avg_net_position_delta"])
+        self.assertGreater(cross["copilot"]["avg_net_position_delta"], cross["always_attack"]["avg_net_position_delta"])
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
+

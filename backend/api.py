@@ -160,6 +160,32 @@ def run_backtest(req: BacktestRunRequest):
         raise HTTPException(status_code=500, detail=f"Backtest execution failed: {str(e)}")
 
 
+@app.post("/api/backtest/compare-baselines")
+def compare_baselines(req: BacktestRunRequest = BacktestRunRequest()):
+    """
+    Executes 3-way head-to-head baseline comparison:
+    TrackShift Copilot vs Always Conserve vs Always Attack on historical FastF1 session data.
+    """
+    try:
+        comparison_report = backtesting_engine.run_baseline_comparison(scenario_id=req.scenario_id)
+        return comparison_report
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Baseline comparison failed: {str(e)}")
+
+
+@app.get("/api/backtest/baselines-summary")
+def get_all_baselines_summary():
+    """
+    Returns 3-way head-to-head scorecard across all 3 historical backtests:
+    Monza (F1), Silverstone (F1), Berlin Tempelhof (Formula E Gen3) + combined cross-circuit averages.
+    """
+    try:
+        summary_report = backtesting_engine.run_all_scenarios_comparison()
+        return summary_report
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Baselines summary failed: {str(e)}")
+
+
 @app.get("/api/presets")
 def get_sandbox_presets():
     """Pre-configured tactical scenarios for quick judge demonstration."""

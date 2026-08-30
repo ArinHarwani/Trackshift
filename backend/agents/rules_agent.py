@@ -30,7 +30,12 @@ class RulesAgent:
 
         # Calculate proposed single-lap kWh consumption if energy agent output provided
         nominal_lap_kwh = total_budget / max(1, state.lap_number + state.laps_remaining)
-        deploy_pct = energy_output.recommended_deploy_pct if energy_output else 0.0
+        if isinstance(energy_output, dict):
+            deploy_pct = float(energy_output.get("recommended_deploy_pct", 0.0))
+        elif energy_output:
+            deploy_pct = float(getattr(energy_output, "recommended_deploy_pct", 0.0))
+        else:
+            deploy_pct = 0.0
         proposed_lap_draw_kwh = nominal_lap_kwh * (1.0 + (deploy_pct / 100.0))
 
         # Check 1: Single lap limit breach (Demo limit: max_energy_per_lap_kwh)
