@@ -204,6 +204,7 @@ export default function App() {
             {/* Interactive Telemetry Manipulator */}
             <StrategySandbox
               state={sandboxState}
+              strategyOutput={strategyOutput}
               onChangeState={(newState) => {
                 setActivePresetId(null);
                 setSandboxState(newState);

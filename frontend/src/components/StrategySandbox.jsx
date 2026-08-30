@@ -1,5 +1,6 @@
 import React from "react";
 import { Sliders, RotateCcw, Zap, Flag, Shield, Crosshair } from "lucide-react";
+import OvertakeVisualizer from "./OvertakeVisualizer";
 
 /**
  * Strategy Sandbox — Interactive Pit-Wall Telemetry Manipulator
@@ -7,6 +8,7 @@ import { Sliders, RotateCcw, Zap, Flag, Shield, Crosshair } from "lucide-react";
  */
 export default function StrategySandbox({
   state,
+  strategyOutput,
   onChangeState,
   presets,
   onSelectPreset,
@@ -18,6 +20,7 @@ export default function StrategySandbox({
   const handleSliderChange = (key, value) => {
     onChangeState({ ...state, [key]: value });
   };
+
 
   return (
     <div className="pit-panel" style={{ marginBottom: "20px" }}>
@@ -87,6 +90,13 @@ export default function StrategySandbox({
             })}
           </div>
         </div>
+
+        {/* Dynamic Overtake Visualizer & Engine Thermal Stress Gauge */}
+        <OvertakeVisualizer
+          state={state}
+          strategyOutput={strategyOutput}
+          onChangeState={onChangeState}
+        />
 
         {/* Sliders Grid */}
         <div className="chevron-divider">TELEMETRY VARIABLES</div>
