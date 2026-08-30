@@ -85,3 +85,4 @@ class PitRadioSynthesizer {
 }
 
 export const pitRadio = new PitRadioSynthesizer();
+export default pitRadio;

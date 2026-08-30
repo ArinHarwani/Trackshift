@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { Play, Pause, SkipForward, RotateCcw, Activity, Gauge, TrendingDown, Flag } from "lucide-react";
+import { Play, Pause, SkipForward, RotateCcw, Activity, Gauge, TrendingDown, Flag, Zap, Crosshair } from "lucide-react";
 
+/**
+ * RaceSimulator — 50-Lap Live Telemetry Simulation Engine
+ * Cohesive F1 Pit-Wall styling with tabular timing telemetry and playback controls.
+ */
 export default function RaceSimulator({
   simState,
   simStrategy,
@@ -32,28 +36,33 @@ export default function RaceSimulator({
 
   if (!simState) return null;
 
+  const totalLaps = simState.lap_number + simState.laps_remaining;
+  const progressPct = ((simState.lap_number / totalLaps) * 100).toFixed(0);
+
   return (
-    <div className="glass-panel" style={{ padding: "24px", marginBottom: "20px" }}>
-      {/* Header and Controls */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", flexWrap: "wrap", gap: "12px" }}>
+    <div className="pit-panel" style={{ padding: "20px", marginBottom: "20px" }}>
+      {/* Header & Playback Controls */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "18px", flexWrap: "wrap", gap: "12px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <div style={{
-            width: "32px",
-            height: "32px",
-            borderRadius: "8px",
-            background: "linear-gradient(135deg, var(--neon-green), var(--neon-cyan))",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}>
-            <Activity size={18} color="#000" strokeWidth={2.5} />
+          <div
+            style={{
+              width: "32px",
+              height: "32px",
+              borderRadius: "2px",
+              background: "var(--purple-optimal)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Activity size={18} color="#fff" strokeWidth={2.5} />
           </div>
           <div>
-            <h3 className="font-display" style={{ fontSize: "1.1rem", fontWeight: 800, color: "#fff" }}>
-              Live Telemetry Simulation Engine <span style={{ color: "var(--neon-green)", fontSize: "0.8rem" }}>// 50-LAP RACE</span>
+            <h3 className="font-display" style={{ fontSize: "1.05rem", fontWeight: 900, color: "var(--text-primary)" }}>
+              LIVE TELEMETRY SIMULATOR // 50-LAP ENGINE
             </h3>
-            <p style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
-              Step or auto-play through realistic multi-lap telemetry with live strategy recalculation
+            <p style={{ fontSize: "0.7rem", color: "var(--text-secondary)" }}>
+              Step or auto-play through dynamic race degradation with live strategy recalculation
             </p>
           </div>
         </div>
@@ -62,14 +71,9 @@ export default function RaceSimulator({
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <button
             onClick={() => setIsPlaying(!isPlaying)}
-            className="btn-primary"
-            style={{
-              background: isPlaying ? "var(--neon-amber)" : "var(--neon-green)",
-              color: "#000",
-              borderColor: isPlaying ? "var(--neon-amber)" : "var(--neon-green)",
-            }}
+            className="btn-f1 btn-f1-purple"
           >
-            {isPlaying ? <Pause size={15} /> : <Play size={15} />}
+            {isPlaying ? <Pause size={14} /> : <Play size={14} fill="#fff" />}
             {isPlaying ? "Pause Sim" : "Auto Play"}
           </button>
 
@@ -78,10 +82,10 @@ export default function RaceSimulator({
               setIsPlaying(false);
               onStep();
             }}
-            className="btn-secondary"
-            title="Step 1 Lap"
+            className="btn-f1"
+            title="Step 1 Lap Forward"
           >
-            <SkipForward size={15} />
+            <SkipForward size={14} />
             Step Lap (+1)
           </button>
 
@@ -90,27 +94,28 @@ export default function RaceSimulator({
               setIsPlaying(false);
               onReset();
             }}
-            className="btn-secondary"
+            className="btn-f1"
             title="Reset Simulation"
           >
-            <RotateCcw size={15} />
+            <RotateCcw size={14} />
             Reset
           </button>
 
-          {/* Speed selectors */}
-          <div style={{ display: "flex", background: "rgba(0,0,0,0.3)", borderRadius: "6px", padding: "2px", border: "1px solid var(--border-subtle)", marginLeft: "6px" }}>
-            {[1, 2, 5].map((spd) => (
+          {/* Speed Selectors */}
+          <div style={{ display: "flex", gap: "3px", marginLeft: "4px", background: "var(--surface-panel-subtle)", padding: "2px", borderRadius: "2px", border: "1px solid var(--border-subtle)" }}>
+            {[1, 2, 4].map((spd) => (
               <button
                 key={spd}
                 onClick={() => setSpeedMultiplier(spd)}
                 style={{
-                  background: speedMultiplier === spd ? "var(--neon-cyan)" : "transparent",
-                  color: speedMultiplier === spd ? "#000" : "var(--text-muted)",
-                  border: "none",
-                  borderRadius: "4px",
-                  padding: "4px 8px",
+                  fontFamily: "var(--font-mono)",
                   fontSize: "0.7rem",
                   fontWeight: 700,
+                  padding: "3px 7px",
+                  borderRadius: "2px",
+                  border: "none",
+                  background: speedMultiplier === spd ? "var(--surface-panel-hover)" : "transparent",
+                  color: speedMultiplier === spd ? "#fff" : "var(--text-secondary)",
                   cursor: "pointer",
                 }}
               >
@@ -121,99 +126,110 @@ export default function RaceSimulator({
         </div>
       </div>
 
-      {/* Mini Telemetry Status Bar */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: "10px", marginBottom: "20px" }}>
-        <div style={{ background: "rgba(0,0,0,0.3)", padding: "10px 14px", borderRadius: "8px", border: "1px solid var(--border-subtle)" }}>
-          <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>Current Lap</span>
-          <div className="font-mono" style={{ fontSize: "1.3rem", fontWeight: 800, color: "#fff" }}>
-            {simState.lap_number} <span style={{ fontSize: "0.8rem", color: "var(--text-dim)" }}>/ {simState.lap_number + simState.laps_remaining}</span>
-          </div>
+      {/* Race Progress Bar */}
+      <div style={{ marginBottom: "18px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.72rem", marginBottom: "4px", color: "var(--text-secondary)" }}>
+          <span className="font-display">RACE DISTANCE PROGRESS</span>
+          <span className="font-mono">
+            LAP {simState.lap_number} / {totalLaps} ({progressPct}%)
+          </span>
         </div>
+        <div style={{ height: "4px", background: "#232832", borderRadius: "2px", overflow: "hidden" }}>
+          <div
+            style={{
+              width: `${progressPct}%`,
+              height: "100%",
+              background: "var(--purple-optimal)",
+              transition: "width 0.3s ease",
+            }}
+          />
+        </div>
+      </div>
 
-        <div style={{ background: "rgba(0,0,0,0.3)", padding: "10px 14px", borderRadius: "8px", border: "1px solid var(--border-subtle)" }}>
-          <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>Position</span>
-          <div className="font-mono" style={{ fontSize: "1.3rem", fontWeight: 800, color: "var(--neon-cyan)" }}>
+      {/* Telemetry Strip Metric Cards */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "12px", marginBottom: "18px" }}>
+        {/* Metric 1: Track Position */}
+        <div style={{ background: "var(--surface-panel-subtle)", border: "1px solid var(--border-subtle)", borderRadius: "3px", padding: "12px" }}>
+          <div style={{ fontSize: "0.68rem", color: "var(--text-secondary)", fontFamily: "var(--font-display)", fontWeight: 700, marginBottom: "2px" }}>
+            TRACK POSITION
+          </div>
+          <div className="font-display" style={{ fontSize: "1.6rem", fontWeight: 900, color: "#fff" }}>
             P{simState.track_position}
           </div>
+          <div style={{ fontSize: "0.68rem", color: "var(--text-dim)" }}>
+            Defending vs {simState.rival_driver_name}
+          </div>
         </div>
 
-        <div style={{ background: "rgba(0,0,0,0.3)", padding: "10px 14px", borderRadius: "8px", border: "1px solid var(--border-subtle)" }}>
-          <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>Energy Reserve</span>
-          <div className="font-mono" style={{ fontSize: "1.3rem", fontWeight: 800, color: simState.energy_pct < 20 ? "var(--neon-red)" : "var(--neon-cyan)" }}>
+        {/* Metric 2: Battery SoC */}
+        <div style={{ background: "var(--surface-panel-subtle)", border: "1px solid var(--border-subtle)", borderRadius: "3px", padding: "12px" }}>
+          <div style={{ fontSize: "0.68rem", color: "var(--text-secondary)", fontFamily: "var(--font-display)", fontWeight: 700, marginBottom: "2px" }}>
+            BATTERY SOC %
+          </div>
+          <div className="font-mono" style={{ fontSize: "1.6rem", fontWeight: 800, color: simState.energy_pct < 20 ? "var(--red-violation)" : "var(--green-compliant)" }}>
             {simState.energy_pct.toFixed(1)}%
           </div>
+          <div style={{ fontSize: "0.68rem", color: "var(--text-dim)" }}>
+            FIA Cap: {simState.total_energy_budget_kwh} kWh
+          </div>
         </div>
 
-        <div style={{ background: "rgba(0,0,0,0.3)", padding: "10px 14px", borderRadius: "8px", border: "1px solid var(--border-subtle)" }}>
-          <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>Gap Ahead</span>
-          <div className="font-mono" style={{ fontSize: "1.3rem", fontWeight: 800, color: simState.gap_ahead_sec <= 0.6 ? "var(--neon-green)" : "#fff" }}>
+        {/* Metric 3: Gap Ahead */}
+        <div style={{ background: "var(--surface-panel-subtle)", border: "1px solid var(--border-subtle)", borderRadius: "3px", padding: "12px" }}>
+          <div style={{ fontSize: "0.68rem", color: "var(--text-secondary)", fontFamily: "var(--font-display)", fontWeight: 700, marginBottom: "2px" }}>
+            GAP AHEAD (s)
+          </div>
+          <div className="font-mono" style={{ fontSize: "1.6rem", fontWeight: 800, color: simState.gap_ahead_sec <= 0.6 ? "var(--green-compliant)" : "#fff" }}>
             +{simState.gap_ahead_sec.toFixed(2)}s
           </div>
+          <div style={{ fontSize: "0.68rem", color: "var(--text-dim)" }}>
+            DRS Detection: {simState.drs_zone_ahead_m}m
+          </div>
         </div>
 
-        <div style={{ background: "rgba(0,0,0,0.3)", padding: "10px 14px", borderRadius: "8px", border: "1px solid var(--border-subtle)" }}>
-          <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>Tyre Degradation</span>
-          <div className="font-mono" style={{ fontSize: "1.3rem", fontWeight: 800, color: "var(--neon-amber)" }}>
-            {simState.tyre_wear_pct.toFixed(1)}%
+        {/* Metric 4: Tyre Wear */}
+        <div style={{ background: "var(--surface-panel-subtle)", border: "1px solid var(--border-subtle)", borderRadius: "3px", padding: "12px" }}>
+          <div style={{ fontSize: "0.68rem", color: "var(--text-secondary)", fontFamily: "var(--font-display)", fontWeight: 700, marginBottom: "2px" }}>
+            TYRE WEAR ({simState.tyre_compound.toUpperCase()})
+          </div>
+          <div className="font-mono" style={{ fontSize: "1.6rem", fontWeight: 800, color: simState.tyre_wear_pct > 70 ? "var(--red-violation)" : simState.tyre_wear_pct > 40 ? "var(--yellow-caution)" : "var(--text-primary)" }}>
+            {simState.tyre_wear_pct.toFixed(0)}%
+          </div>
+          <div style={{ fontSize: "0.68rem", color: "var(--text-dim)" }}>
+            Grip Life Remaining
           </div>
         </div>
       </div>
 
-      {/* Visual Energy & Gap Progress Bars across Laps */}
-      <div style={{ background: "rgba(0,0,0,0.3)", padding: "16px", borderRadius: "10px", border: "1px solid var(--border-subtle)", marginBottom: "16px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "8px" }}>
-          <span>Race Lap Progress</span>
-          <span style={{ color: "var(--neon-cyan)" }}>{((simState.lap_number / (simState.lap_number + simState.laps_remaining)) * 100).toFixed(0)}% Completed</span>
-        </div>
-        <div style={{ height: "10px", background: "rgba(255,255,255,0.06)", borderRadius: "5px", overflow: "hidden", position: "relative" }}>
-          <div style={{
-            height: "100%",
-            width: `${(simState.lap_number / (simState.lap_number + simState.laps_remaining)) * 100}%`,
-            background: "linear-gradient(90deg, var(--neon-cyan), var(--neon-green))",
-            boxShadow: "0 0 10px var(--neon-green)",
-            transition: "width 0.25s ease",
-          }} />
-        </div>
-      </div>
-
-      {/* History Log Table */}
+      {/* Historical Telemetry Log */}
       {history.length > 0 && (
-        <div style={{ marginTop: "16px" }}>
-          <h4 className="font-display" style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginBottom: "8px" }}>
-            Telemetry History (Last {Math.min(6, history.length)} Laps)
-          </h4>
-          <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.75rem" }}>
+        <div>
+          <div className="chevron-divider">SIMULATION TELEMETRY LOG (LAST {history.length} LAPS)</div>
+          <div style={{ maxHeight: "200px", overflowY: "auto", border: "1px solid var(--border-subtle)", borderRadius: "3px" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.72rem" }}>
               <thead>
-                <tr style={{ borderBottom: "1px solid var(--border-subtle)", color: "var(--text-dim)", textAlign: "left" }}>
-                  <th style={{ padding: "6px 8px" }}>LAP</th>
-                  <th style={{ padding: "6px 8px" }}>POS</th>
-                  <th style={{ padding: "6px 8px" }}>ENERGY %</th>
-                  <th style={{ padding: "6px 8px" }}>GAP AHEAD</th>
-                  <th style={{ padding: "6px 8px" }}>TYRE WEAR</th>
-                  <th style={{ padding: "6px 8px" }}>ACTION</th>
+                <tr style={{ background: "var(--surface-panel-subtle)", color: "var(--text-secondary)", borderBottom: "1px solid var(--border-subtle)", textAlign: "left" }}>
+                  <th style={{ padding: "8px 12px", fontFamily: "var(--font-display)" }}>LAP</th>
+                  <th style={{ padding: "8px 12px", fontFamily: "var(--font-display)" }}>POS</th>
+                  <th style={{ padding: "8px 12px", fontFamily: "var(--font-display)" }}>ENERGY %</th>
+                  <th style={{ padding: "8px 12px", fontFamily: "var(--font-display)" }}>GAP AHEAD</th>
+                  <th style={{ padding: "8px 12px", fontFamily: "var(--font-display)" }}>TYRE WEAR</th>
+                  <th style={{ padding: "8px 12px", fontFamily: "var(--font-display)" }}>ACTION</th>
+                  <th style={{ padding: "8px 12px", fontFamily: "var(--font-display)" }}>OVERTAKE PROB</th>
                 </tr>
               </thead>
               <tbody>
-                {history.slice(-6).reverse().map((h, idx) => (
-                  <tr key={idx} style={{ borderBottom: "1px solid rgba(255,255,255,0.03)" }}>
-                    <td className="font-mono" style={{ padding: "6px 8px", color: "#fff" }}>Lap {h.lap_number}</td>
-                    <td className="font-mono" style={{ padding: "6px 8px", color: "var(--neon-cyan)" }}>P{h.track_position}</td>
-                    <td className="font-mono" style={{ padding: "6px 8px", color: h.energy_pct < 20 ? "var(--neon-red)" : "#fff" }}>{h.energy_pct}%</td>
-                    <td className="font-mono" style={{ padding: "6px 8px", color: h.gap_ahead_sec <= 0.6 ? "var(--neon-green)" : "#fff" }}>+{h.gap_ahead_sec}s</td>
-                    <td className="font-mono" style={{ padding: "6px 8px", color: "var(--neon-amber)" }}>{h.tyre_wear_pct}%</td>
-                    <td style={{ padding: "6px 8px" }}>
-                      <span style={{
-                        fontSize: "0.65rem",
-                        padding: "2px 6px",
-                        borderRadius: "4px",
-                        background: h.in_attack_mode_zone ? "rgba(181,95,230,0.2)" : "rgba(0,240,255,0.1)",
-                        color: h.in_attack_mode_zone ? "var(--neon-purple)" : "var(--neon-cyan)",
-                        fontWeight: 700,
-                      }}>
-                        {h.in_attack_mode_zone ? "ATTACK MODE" : "HYBRID PACE"}
-                      </span>
+                {[...history].reverse().map((entry, idx) => (
+                  <tr key={idx} style={{ borderBottom: "1px solid rgba(255,255,255,0.03)", background: idx % 2 === 0 ? "transparent" : "rgba(255,255,255,0.01)" }}>
+                    <td className="font-mono" style={{ padding: "6px 12px" }}>#{entry.lap}</td>
+                    <td className="font-display" style={{ padding: "6px 12px", fontWeight: 700 }}>P{entry.state.track_position}</td>
+                    <td className="font-mono" style={{ padding: "6px 12px" }}>{entry.state.energy_pct.toFixed(1)}%</td>
+                    <td className="font-mono" style={{ padding: "6px 12px" }}>+{entry.state.gap_ahead_sec.toFixed(2)}s</td>
+                    <td className="font-mono" style={{ padding: "6px 12px" }}>{entry.state.tyre_wear_pct.toFixed(0)}%</td>
+                    <td className="font-display" style={{ padding: "6px 12px", fontWeight: 700, color: entry.strategy?.raw_agent_outputs?.energy?.recommended_action === "deploy" ? "var(--green-compliant)" : entry.strategy?.raw_agent_outputs?.energy?.recommended_action === "conserve" ? "var(--yellow-caution)" : "#fff" }}>
+                      {entry.strategy?.raw_agent_outputs?.energy?.recommended_action?.toUpperCase()}
                     </td>
+                    <td className="font-mono" style={{ padding: "6px 12px" }}>{entry.strategy?.overtake_probability_pct?.toFixed(1)}%</td>
                   </tr>
                 ))}
               </tbody>

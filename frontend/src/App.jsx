@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useCallback } from "react";
 import Navbar from "./components/Navbar";
-import LiveHUD from "./components/LiveHUD";
+import TimingTowerStrip from "./components/TimingTowerStrip";
 import DecisionDisplay from "./components/DecisionDisplay";
 import StrategySandbox from "./components/StrategySandbox";
 import AgentInspector from "./components/AgentInspector";
 import RaceSimulator from "./components/RaceSimulator";
 import BacktestStudio from "./components/BacktestStudio";
-import { pitRadio } from "./utils/audioSynth";
+import pitRadio from "./utils/audioSynth";
 
 const API_BASE = "http://localhost:8000/api";
 
@@ -14,7 +14,7 @@ const DEFAULT_STATE = {
   lap_number: 24,
   laps_remaining: 6,
   energy_pct: 32.0,
-  energy_used_this_lap_kwh: 0.0,
+  energy_used_this_lap_kwh: 1.04,
   max_energy_per_lap_kwh: 4.0,
   total_energy_budget_kwh: 52.0,
   total_energy_used_kwh: 38.5,
@@ -33,8 +33,8 @@ const DEFAULT_STATE = {
 
 export default function App() {
   const [activeTab, setActiveTab] = useState("sandbox"); // "sandbox" | "simulator" | "backtest"
-  const [trackName, setTrackName] = useState("Monza E-Prix");
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [isCalculating, setIsCalculating] = useState(false);
 
   // Sandbox state
   const [sandboxState, setSandboxState] = useState(DEFAULT_STATE);
@@ -83,8 +83,9 @@ export default function App() {
       .catch((err) => console.warn("Backtest report fetch error:", err));
   }, []);
 
-  // Compute strategy whenever sandboxState changes
+  // Compute strategy whenever sandboxState changes (triggers 5 Red Lights sequence)
   useEffect(() => {
+    setIsCalculating(true);
     const timer = setTimeout(() => {
       fetch(`${API_BASE}/strategy`, {
         method: "POST",
@@ -92,15 +93,23 @@ export default function App() {
         body: JSON.stringify(sandboxState),
       })
         .then((res) => res.json())
-        .then((data) => setStrategyOutput(data))
-        .catch((err) => console.error("Strategy fetch error:", err));
-    }, 10); // 10ms debounce for ultra-responsive feel
+        .then((data) => {
+          setStrategyOutput(data);
+          // Keep lights on briefly for authentic 5-red-lights sequence
+          setTimeout(() => setIsCalculating(false), 280);
+        })
+        .catch((err) => {
+          console.error("Strategy fetch error:", err);
+          setIsCalculating(false);
+        });
+    }, 30); // Debounce for responsive typing/sliding
 
     return () => clearTimeout(timer);
   }, [sandboxState]);
 
   // Simulation step handler
   const handleSimStep = useCallback(() => {
+    setIsCalculating(true);
     fetch(`${API_BASE}/simulate/step`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -110,9 +119,13 @@ export default function App() {
       .then((data) => {
         setSimState(data.state);
         setSimStrategy(data.strategy);
-        setSimHistory((prev) => [...prev, data.state]);
+        setSimHistory((prev) => [...prev, { lap: data.state.lap_number, state: data.state, strategy: data.strategy }]);
+        setTimeout(() => setIsCalculating(false), 200);
       })
-      .catch((err) => console.error("Sim step error:", err));
+      .catch((err) => {
+        console.error("Sim step error:", err);
+        setIsCalculating(false);
+      });
   }, []);
 
   // Simulation reset handler
@@ -122,7 +135,7 @@ export default function App() {
       .then((data) => {
         setSimState(data.state);
         setSimStrategy(data.strategy);
-        setSimHistory([data.state]);
+        setSimHistory([{ lap: data.state.lap_number, state: data.state, strategy: data.strategy }]);
       })
       .catch((err) => console.error("Sim reset error:", err));
   }, []);
@@ -130,14 +143,21 @@ export default function App() {
   // Backtest scenario switch
   const handleSelectScenario = (scenarioId) => {
     setSelectedScenarioId(scenarioId);
+    setIsCalculating(true);
     fetch(`${API_BASE}/backtest/run`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ scenario_id: scenarioId }),
     })
       .then((res) => res.json())
-      .then((data) => setBacktestReport(data))
-      .catch((err) => console.error("Backtest load error:", err));
+      .then((data) => {
+        setBacktestReport(data);
+        setTimeout(() => setIsCalculating(false), 250);
+      })
+      .catch((err) => {
+        console.error("Backtest load error:", err);
+        setIsCalculating(false);
+      });
   };
 
   // Preset selector
@@ -158,40 +178,30 @@ export default function App() {
   const activeDisplayStrategy = activeTab === "simulator" ? simStrategy || strategyOutput : strategyOutput;
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
-      {/* Top Navbar */}
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "var(--bg-asphalt)" }}>
+      {/* 1. Persistent Dense F1 Timing Tower Ribbon */}
+      <TimingTowerStrip raceState={activeDisplayState} isCalculating={isCalculating} />
+
+      {/* 2. Top Pit-Wall Navbar */}
       <Navbar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        trackName={trackName}
-        setTrackName={setTrackName}
         soundEnabled={soundEnabled}
         setSoundEnabled={setSoundEnabled}
-        ruleStatus={activeDisplayStrategy?.rule_compliance || "verified"}
       />
 
-      {/* Main Pit-Wall Dashboard Body */}
-      <main style={{ flex: 1, padding: "0 20px 30px", maxWidth: "1600px", margin: "0 auto", width: "100%" }}>
-        {/* Cockpit Gauges & Telemetry Bar */}
-        <LiveHUD
-          state={activeDisplayState}
-          energyAgentOut={activeDisplayStrategy?.raw_agent_outputs?.energy}
-          overtakeAgentOut={activeDisplayStrategy?.raw_agent_outputs?.overtake}
-        />
-
-        {/* Primary Strategy Orchestrator Callout */}
-        <DecisionDisplay
-          strategy={activeDisplayStrategy}
-          onPlayAudio={() => {
-            if (activeDisplayStrategy) {
-              pitRadio.speak(activeDisplayStrategy.headline + ". " + activeDisplayStrategy.explanation);
-            }
-          }}
-        />
-
-        {/* Tab 1: Strategy Sandbox (Judges' Primary Playground) */}
+      {/* 3. Main Dashboard Body */}
+      <main style={{ flex: 1, padding: "20px 24px 40px", maxWidth: "1500px", margin: "0 auto", width: "100%" }}>
+        {/* Tab 1: Strategy Sandbox (Primary Pit-Wall Dashboard) */}
         {activeTab === "sandbox" && (
           <>
+            {/* Hero Zone: ONE dominant asymmetric 60/40 recommendation panel */}
+            <DecisionDisplay
+              strategyOutput={strategyOutput}
+              raceState={sandboxState}
+            />
+
+            {/* Interactive Telemetry Manipulator */}
             <StrategySandbox
               state={sandboxState}
               onChangeState={(newState) => {
@@ -204,14 +214,23 @@ export default function App() {
               onReset={handleResetSandbox}
             />
 
-            {/* Agent Deep-Dive Reasoning Inspector */}
-            <AgentInspector rawOutputs={activeDisplayStrategy?.raw_agent_outputs} />
+            {/* Collapsible Strategy Breakdown Accordion */}
+            <AgentInspector
+              rawAgentOutputs={strategyOutput?.raw_agent_outputs}
+              scoringBreakdown={strategyOutput?.scoring_breakdown}
+              compositeScore={strategyOutput?.composite_score}
+            />
           </>
         )}
 
         {/* Tab 2: Live Telemetry Race Simulator */}
         {activeTab === "simulator" && (
           <>
+            <DecisionDisplay
+              strategyOutput={simStrategy || strategyOutput}
+              raceState={simState}
+            />
+
             <RaceSimulator
               simState={simState}
               simStrategy={simStrategy}
@@ -220,7 +239,11 @@ export default function App() {
               history={simHistory}
             />
 
-            <AgentInspector rawOutputs={activeDisplayStrategy?.raw_agent_outputs} />
+            <AgentInspector
+              rawAgentOutputs={(simStrategy || strategyOutput)?.raw_agent_outputs}
+              scoringBreakdown={(simStrategy || strategyOutput)?.scoring_breakdown}
+              compositeScore={(simStrategy || strategyOutput)?.composite_score}
+            />
           </>
         )}
 
@@ -231,6 +254,7 @@ export default function App() {
             selectedScenarioId={selectedScenarioId}
             onSelectScenario={handleSelectScenario}
             backtestReport={backtestReport}
+            loading={isCalculating}
           />
         )}
       </main>

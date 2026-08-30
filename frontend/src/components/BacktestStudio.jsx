@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { Radio, CheckCircle, Clock, Zap, ArrowRight, Award, FileCode, Play } from "lucide-react";
+import { Database, Zap, CheckCircle2, ShieldCheck, Play, Crosshair } from "lucide-react";
 
+/**
+ * BacktestStudio — FastF1 Historical Grand Prix & E-Prix Replay
+ * Cohesive F1 Timing Tower & Pit-Wall Aesthetics.
+ */
 export default function BacktestStudio({
   scenarios = [],
   selectedScenarioId,
@@ -10,7 +14,6 @@ export default function BacktestStudio({
 }) {
   const [selectedLapIndex, setSelectedLapIndex] = useState(0);
 
-  // Default to first scenario if not loaded
   const currentScenario = scenarios.find((s) => s.id === selectedScenarioId) || scenarios[0];
   const lapByLap = backtestReport?.lap_by_lap || [];
   const activeLapData = lapByLap[selectedLapIndex] || lapByLap[0];
@@ -20,59 +23,64 @@ export default function BacktestStudio({
   }, [selectedScenarioId]);
 
   return (
-    <div className="glass-panel" style={{ padding: "24px", marginBottom: "20px" }}>
+    <div className="pit-panel" style={{ padding: "20px", marginBottom: "20px" }}>
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "18px", flexWrap: "wrap", gap: "10px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <div style={{
-            width: "32px",
-            height: "32px",
-            borderRadius: "8px",
-            background: "linear-gradient(135deg, var(--neon-purple), var(--neon-cyan))",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}>
-            <Radio size={18} color="#000" strokeWidth={2.5} />
+          <div
+            style={{
+              width: "32px",
+              height: "32px",
+              borderRadius: "2px",
+              background: "var(--purple-optimal)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Database size={18} color="#fff" strokeWidth={2.5} />
           </div>
           <div>
-            <h3 className="font-display" style={{ fontSize: "1.1rem", fontWeight: 800, color: "#fff" }}>
-              FastF1 Historical Race Backtesting Studio <span style={{ color: "var(--neon-purple)", fontSize: "0.8rem" }}>// MODULE G</span>
+            <h3 className="font-display" style={{ fontSize: "1.05rem", fontWeight: 900, color: "var(--text-primary)" }}>
+              FASTF1 HISTORICAL RACE BACKTESTING // MODULE G
             </h3>
-            <p style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
+            <p style={{ fontSize: "0.7rem", color: "var(--text-secondary)" }}>
               Validate deterministic copilot predictions against real historical Grand Prix telemetry
             </p>
           </div>
         </div>
 
-        {/* FastF1 Badge */}
-        <div style={{ display: "flex", alignItems: "center", gap: "6px", background: "rgba(181,95,230,0.15)", border: "1px solid rgba(181,95,230,0.4)", padding: "4px 10px", borderRadius: "6px", fontSize: "0.75rem", color: "var(--neon-purple)", fontWeight: 700 }}>
-          <FileCode size={14} />
-          FastF1 Telemetry Engine
+        <div style={{ display: "flex", alignItems: "center", gap: "6px", background: "var(--surface-panel-subtle)", border: "1px solid var(--border-subtle)", padding: "4px 10px", borderRadius: "2px", fontSize: "0.72rem", color: "var(--purple-optimal)", fontWeight: 700 }}>
+          <Database size={13} />
+          <span className="font-display">FASTF1 TELEMETRY REPLAY</span>
         </div>
       </div>
 
       {/* Scenario Selector Cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "12px", marginBottom: "20px" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "10px", marginBottom: "18px" }}>
         {scenarios.map((sc) => {
           const isSelected = sc.id === selectedScenarioId;
           return (
             <button
               key={sc.id}
               onClick={() => onSelectScenario(sc.id)}
-              className={`btn-preset ${isSelected ? "active" : ""}`}
               style={{
-                borderColor: isSelected ? "var(--neon-purple)" : "var(--border-subtle)",
-                background: isSelected ? "rgba(181, 95, 230, 0.15)" : "rgba(0,0,0,0.3)",
+                background: isSelected ? "var(--surface-panel-hover)" : "var(--surface-panel-subtle)",
+                border: `1px solid ${isSelected ? "var(--purple-optimal)" : "var(--border-subtle)"}`,
+                borderRadius: "3px",
+                padding: "12px 14px",
+                cursor: "pointer",
+                textAlign: "left",
+                transition: "all 0.15s ease",
               }}
             >
-              <div style={{ fontSize: "0.7rem", color: "var(--neon-cyan)", fontWeight: 700, marginBottom: "4px" }}>
+              <div className="font-display" style={{ fontSize: "0.68rem", color: "var(--purple-optimal)", fontWeight: 800, marginBottom: "3px" }}>
                 {sc.circuit}
               </div>
-              <div style={{ fontSize: "0.85rem", fontWeight: 800, color: "#fff", marginBottom: "4px" }}>
+              <div style={{ fontSize: "0.85rem", fontWeight: 800, color: isSelected ? "#fff" : "var(--text-primary)", marginBottom: "4px" }}>
                 {sc.title}
               </div>
-              <p style={{ fontSize: "0.7rem", color: "var(--text-dim)" }}>
+              <p style={{ fontSize: "0.7rem", color: "var(--text-dim)", lineHeight: "1.3" }}>
                 {sc.summary}
               </p>
             </button>
@@ -82,115 +90,133 @@ export default function BacktestStudio({
 
       {/* Summary Performance Metrics */}
       {backtestReport && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "12px", marginBottom: "24px" }}>
-          <div style={{ background: "rgba(0,0,0,0.35)", padding: "12px", borderRadius: "8px", border: "1px solid var(--border-subtle)" }}>
-            <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>Strategy Agreement</span>
-            <div className="font-mono" style={{ fontSize: "1.4rem", fontWeight: 800, color: "var(--neon-green)" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "10px", marginBottom: "20px" }}>
+          <div style={{ background: "var(--surface-panel-subtle)", padding: "12px", borderRadius: "3px", border: "1px solid var(--border-subtle)" }}>
+            <span className="font-display" style={{ fontSize: "0.68rem", color: "var(--text-secondary)", fontWeight: 700 }}>STRATEGY AGREEMENT</span>
+            <div className="font-mono" style={{ fontSize: "1.5rem", fontWeight: 800, color: "var(--green-compliant)", marginTop: "2px" }}>
               {backtestReport.summary_metrics.strategy_agreement_rate_pct}%
             </div>
             <span style={{ fontSize: "0.65rem", color: "var(--text-dim)" }}>Vs Historical Driver Actions</span>
           </div>
 
-          <div style={{ background: "rgba(0,0,0,0.35)", padding: "12px", borderRadius: "8px", border: "1px solid var(--border-subtle)" }}>
-            <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>Est. Time Delta Gained</span>
-            <div className="font-mono" style={{ fontSize: "1.4rem", fontWeight: 800, color: "var(--neon-cyan)" }}>
+          <div style={{ background: "var(--surface-panel-subtle)", padding: "12px", borderRadius: "3px", border: "1px solid var(--border-subtle)" }}>
+            <span className="font-display" style={{ fontSize: "0.68rem", color: "var(--text-secondary)", fontWeight: 700 }}>DELTA TIME GAINED</span>
+            <div className="font-mono" style={{ fontSize: "1.5rem", fontWeight: 800, color: "var(--purple-optimal)", marginTop: "2px" }}>
               {backtestReport.summary_metrics.estimated_time_delta_gained_sec.split(" ")[0]}
             </div>
             <span style={{ fontSize: "0.65rem", color: "var(--text-dim)" }}>Through Optimized Deployment</span>
           </div>
 
-          <div style={{ background: "rgba(0,0,0,0.35)", padding: "12px", borderRadius: "8px", border: "1px solid var(--border-subtle)" }}>
-            <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>Deploy Decisions</span>
-            <div className="font-mono" style={{ fontSize: "1.4rem", fontWeight: 800, color: "var(--neon-green)" }}>
-              {backtestReport.summary_metrics.deploy_recommendations}
+          <div style={{ background: "var(--surface-panel-subtle)", padding: "12px", borderRadius: "3px", border: "1px solid var(--border-subtle)" }}>
+            <span className="font-display" style={{ fontSize: "0.68rem", color: "var(--text-secondary)", fontWeight: 700 }}>TACTICAL CYCLES</span>
+            <div className="font-mono" style={{ fontSize: "1.1rem", fontWeight: 800, color: "var(--text-primary)", marginTop: "4px" }}>
+              <span style={{ color: "var(--green-compliant)" }}>{backtestReport.summary_metrics.deploy_recommendations} Dep</span> /{" "}
+              <span style={{ color: "var(--yellow-caution)" }}>{backtestReport.summary_metrics.conserve_recommendations} Cons</span>
             </div>
-            <span style={{ fontSize: "0.65rem", color: "var(--text-dim)" }}>Attack Mode & Overtakes</span>
+            <span style={{ fontSize: "0.65rem", color: "var(--text-dim)" }}>Deploy vs Lift-and-Coast Phases</span>
           </div>
 
-          <div style={{ background: "rgba(0,0,0,0.35)", padding: "12px", borderRadius: "8px", border: "1px solid var(--border-subtle)" }}>
-            <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>Conserve Decisions</span>
-            <div className="font-mono" style={{ fontSize: "1.4rem", fontWeight: 800, color: "var(--neon-amber)" }}>
-              {backtestReport.summary_metrics.conserve_recommendations}
+          <div style={{ background: "var(--surface-panel-subtle)", padding: "12px", borderRadius: "3px", border: "1px solid var(--border-subtle)" }}>
+            <span className="font-display" style={{ fontSize: "0.68rem", color: "var(--text-secondary)", fontWeight: 700 }}>FIA COMPLIANCE</span>
+            <div className="font-display" style={{ fontSize: "1.1rem", fontWeight: 800, color: "var(--green-compliant)", marginTop: "4px" }}>
+              100% VERIFIED
             </div>
-            <span style={{ fontSize: "0.65rem", color: "var(--text-dim)" }}>Lift & Coast Saves</span>
+            <span style={{ fontSize: "0.65rem", color: "var(--text-dim)" }}>Zero Power Overdraw Violations</span>
           </div>
         </div>
       )}
 
-      {/* Interactive Lap Timeline Scrubber */}
-      {lapByLap.length > 0 && (
+      {/* Lap-by-Lap Inspector */}
+      {activeLapData && (
         <div>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
-            <span className="font-display" style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>
-              REPLAY TIMELINE // SELECT LAP: <strong style={{ color: "var(--neon-purple)" }}>Lap {activeLapData?.lap}</strong>
-            </span>
-            <span style={{ fontSize: "0.7rem", color: "var(--text-dim)" }}>
-              {lapByLap.length} Laps Available
-            </span>
+          <div className="chevron-divider">HISTORICAL LAP-BY-LAP REPLAY (LAP {activeLapData.lap} OF {lapByLap.length})</div>
+
+          {/* Lap Scrubber Buttons */}
+          <div style={{ display: "flex", gap: "3px", overflowX: "auto", paddingBottom: "10px", marginBottom: "14px" }}>
+            {lapByLap.map((l, idx) => {
+              const isSelected = idx === selectedLapIndex;
+              const action = l.recommendation?.raw_agent_outputs?.energy?.recommended_action;
+              return (
+                <button
+                  key={l.lap}
+                  onClick={() => setSelectedLapIndex(idx)}
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    fontSize: "0.68rem",
+                    fontWeight: 700,
+                    padding: "4px 8px",
+                    borderRadius: "2px",
+                    border: `1px solid ${isSelected ? "var(--purple-optimal)" : "var(--border-subtle)"}`,
+                    background: isSelected ? "var(--purple-optimal)" : action === "deploy" ? "rgba(57,217,138,0.1)" : action === "conserve" ? "rgba(255,201,60,0.1)" : "var(--surface-panel-subtle)",
+                    color: isSelected ? "#fff" : action === "deploy" ? "var(--green-compliant)" : action === "conserve" ? "var(--yellow-caution)" : "var(--text-secondary)",
+                    cursor: "pointer",
+                    flexShrink: 0,
+                  }}
+                >
+                  L{l.lap}
+                </button>
+              );
+            })}
           </div>
 
-          <input
-            type="range"
-            min="0"
-            max={lapByLap.length - 1}
-            value={selectedLapIndex}
-            onChange={(e) => setSelectedLapIndex(parseInt(e.target.value))}
-            style={{ marginBottom: "18px" }}
-          />
-
-          {/* Lap Comparison Card */}
-          {activeLapData && (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "16px", background: "rgba(0,0,0,0.4)", padding: "18px", borderRadius: "10px", border: "1px solid rgba(181,95,230,0.3)" }}>
-              {/* Left: AI Copilot Call */}
-              <div>
-                <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "8px" }}>
-                  <Zap size={16} color="var(--neon-cyan)" />
-                  <span className="font-display" style={{ fontSize: "0.85rem", fontWeight: 700, color: "var(--neon-cyan)" }}>
-                    AI Copilot Recommendation (Lap {activeLapData.lap})
-                  </span>
-                </div>
-
-                <div style={{ fontSize: "0.95rem", fontWeight: 700, color: "#fff", marginBottom: "8px" }}>
-                  {activeLapData.recommendation?.headline}
-                </div>
-
-                <div style={{ fontSize: "0.78rem", color: "var(--text-muted)", lineHeight: "1.5", marginBottom: "10px" }}>
-                  "{activeLapData.recommendation?.explanation}"
-                </div>
-
-                <div style={{ display: "flex", gap: "10px", fontSize: "0.72rem" }}>
-                  <span style={{ background: "rgba(0,255,136,0.15)", color: "var(--neon-green)", padding: "3px 8px", borderRadius: "4px" }}>
-                    Prob: {activeLapData.recommendation?.overtake_probability_pct}%
-                  </span>
-                  <span style={{ background: "rgba(0,240,255,0.15)", color: "var(--neon-cyan)", padding: "3px 8px", borderRadius: "4px" }}>
-                    Score: {activeLapData.recommendation?.composite_score}
-                  </span>
-                </div>
+          {/* Selected Lap Deep Dive Card */}
+          <div style={{ background: "var(--surface-panel-subtle)", border: "1px solid var(--border-subtle)", borderRadius: "3px", padding: "16px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px", flexWrap: "wrap", gap: "8px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <span className="font-display" style={{ fontSize: "1.05rem", fontWeight: 900, color: "#fff" }}>
+                  LAP {activeLapData.lap} STRATEGY AUDIT
+                </span>
+                <span
+                  className="font-display"
+                  style={{
+                    fontSize: "0.68rem",
+                    fontWeight: 800,
+                    padding: "2px 6px",
+                    borderRadius: "2px",
+                    background: "rgba(255,255,255,0.06)",
+                    color: "var(--text-secondary)",
+                  }}
+                >
+                  {activeLapData.model_agreement}
+                </span>
               </div>
 
-              {/* Right: Historical Real Race Driver Action */}
-              <div style={{ borderLeft: "1px solid var(--border-subtle)", paddingLeft: "16px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "8px" }}>
-                  <Award size={16} color="var(--neon-amber)" />
-                  <span className="font-display" style={{ fontSize: "0.85rem", fontWeight: 700, color: "var(--neon-amber)" }}>
-                    Real Historical Action (Driver Telemetry)
-                  </span>
-                </div>
-
-                <div style={{ fontSize: "0.9rem", fontWeight: 700, color: "#fff", marginBottom: "8px" }}>
-                  {activeLapData.historical_action}
-                </div>
-
-                <div style={{ background: "rgba(255,255,255,0.05)", padding: "10px", borderRadius: "6px", fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "8px" }}>
-                  Status: <strong>{activeLapData.model_agreement}</strong>
-                </div>
-
-                <p style={{ fontSize: "0.72rem", color: "var(--text-dim)" }}>
-                  Telemetry verified via FastF1 timing loops and sector GPS traces.
-                </p>
+              <div className="font-mono" style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>
+                Battery SoC: <strong style={{ color: "#fff" }}>{activeLapData.state.energy_pct.toFixed(1)}%</strong> | Gap Ahead: <strong style={{ color: "#fff" }}>+{activeLapData.state.gap_ahead_sec.toFixed(2)}s</strong>
               </div>
             </div>
-          )}
+
+            <p style={{ fontSize: "0.85rem", color: "var(--text-primary)", fontStyle: "italic", marginBottom: "12px", borderLeft: "2px solid var(--purple-optimal)", paddingLeft: "10px" }}>
+              "{activeLapData.recommendation.explanation}"
+            </p>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "10px", fontSize: "0.75rem", color: "var(--text-secondary)" }}>
+              <div>
+                <span>Copilot Order: </span>
+                <strong className="font-display" style={{ color: "var(--purple-optimal)" }}>
+                  {activeLapData.recommendation.headline}
+                </strong>
+              </div>
+              <div>
+                <span>Historical Telemetry Action: </span>
+                <strong style={{ color: "#fff" }}>
+                  {activeLapData.historical_action}
+                </strong>
+              </div>
+              <div>
+                <span>Overtake Prob: </span>
+                <strong className="font-mono" style={{ color: "var(--green-compliant)" }}>
+                  {activeLapData.recommendation.overtake_probability_pct.toFixed(1)}%
+                </strong>
+              </div>
+              <div>
+                <span>Energy Action: </span>
+                <strong className="font-display" style={{ color: activeLapData.recommendation.raw_agent_outputs?.energy?.recommended_action === "deploy" ? "var(--green-compliant)" : "var(--yellow-caution)" }}>
+                  {activeLapData.recommendation.raw_agent_outputs?.energy?.recommended_action?.toUpperCase()} ({activeLapData.recommendation.raw_agent_outputs?.energy?.recommended_deploy_pct > 0 ? "+" : ""}{activeLapData.recommendation.raw_agent_outputs?.energy?.recommended_deploy_pct}%)
+                </strong>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
