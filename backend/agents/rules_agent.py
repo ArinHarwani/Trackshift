@@ -33,22 +33,22 @@ class RulesAgent:
         deploy_pct = energy_output.recommended_deploy_pct if energy_output else 0.0
         proposed_lap_draw_kwh = nominal_lap_kwh * (1.0 + (deploy_pct / 100.0))
 
-        # Check 1: Single lap limit breach
+        # Check 1: Single lap limit breach (Demo limit: max_energy_per_lap_kwh)
         if (this_lap_used + proposed_lap_draw_kwh) > per_lap_limit:
             excess = (this_lap_used + proposed_lap_draw_kwh) - per_lap_limit
             violations.append(
-                f"ARTICLE 34.2 (PER-LAP ENERGY CAP): Proposed draw of {proposed_lap_draw_kwh + this_lap_used:.2f} kWh "
-                f"exceeds FIA max limit of {per_lap_limit:.2f} kWh (breach: +{excess:.2f} kWh). "
-                f"Risk of 5s time penalty or disqualification."
+                f"PER-LAP ENERGY CAP (Demo Limit {per_lap_limit:.1f} kWh): Proposed draw of {proposed_lap_draw_kwh + this_lap_used:.2f} kWh "
+                f"exceeds the max per-lap threshold (excess: +{excess:.2f} kWh). "
+                f"Risk of time penalty or power throttle."
             )
 
-        # Check 2: Total budget exhaustion breach
+        # Check 2: Total budget exhaustion breach (Demo limit: total_energy_budget_kwh)
         if proposed_lap_draw_kwh > budget_remaining_kwh:
             shortage = proposed_lap_draw_kwh - budget_remaining_kwh
             violations.append(
-                f"ARTICLE 37.1 (TOTAL ENERGY OVERDRAW): Projected usage exceeds remaining allocation "
+                f"TOTAL ALLOCATION OVERDRAW (Demo Limit {total_budget:.1f} kWh): Projected usage exceeds remaining allocation "
                 f"({budget_remaining_kwh:.2f} kWh remaining, requested {proposed_lap_draw_kwh:.2f} kWh). "
-                f"Immediate DNF / DSQ risk."
+                f"Immediate power cutoff risk."
             )
 
         # Max safe deploy calculation

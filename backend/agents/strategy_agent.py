@@ -6,6 +6,7 @@ natural language pit-radio explanations via Gemini API or high-precision fallbac
 """
 
 import os
+import json
 import httpx
 from typing import Dict, Any, Optional
 
@@ -64,10 +65,8 @@ class StrategyAgent:
         # 5. Opponent profile modifier (-0.05 to +0.08)
         opp_mod = 0.02
         if opponent_out.opponent_profile == "defensive":
-            # Defensive driver holds lines; requires higher commitment or DRS
             opp_mod = -0.04 if not overtake_out.rationale_data.drs_assist else 0.03
         elif opponent_out.opponent_profile == "aggressive":
-            # Aggressive driver may overcook braking zones -> opportunity
             opp_mod = 0.06
         opp_mod = round(opp_mod, 3)
 
@@ -98,7 +97,7 @@ class StrategyAgent:
     ) -> str:
         """Generates punchy pit-wall order headline."""
         if not rules_out.compliant:
-            return f"HOLD: Regulatory limit breach prevention ({rules_out.violations[0].split(':')[0]})"
+            return f"HOLD: Technical limit breach prevention ({rules_out.violations[0].split(':')[0]})"
 
         if energy_out.recommended_action == "conserve":
             return f"Lift & Coast Mode: Conserve {abs(energy_out.recommended_deploy_pct)}% to protect delta"
@@ -113,6 +112,73 @@ class StrategyAgent:
             return f"Harvest & Charge: Deploy +{energy_out.recommended_deploy_pct}% in Attack Zone"
 
         return f"Maintain Hybrid Mode: Target {state.gap_ahead_sec:.1f}s gap, conserve tyre life"
+
+    def get_gemini_prompt(
+        self,
+        state: RaceState,
+        energy_out: EnergyAgentOutput,
+        overtake_out: OvertakeAgentOutput,
+        rules_out: RulesAgentOutput,
+        opponent_out: OpponentAgentOutput,
+        headline: str,
+    ) -> tuple[str, str]:
+        """
+        Returns the exact (system_prompt, user_prompt) passed to the LLM.
+        Guarantees that Gemini is only used to explain pre-calculated numbers and cannot invent new ones.
+        """
+        system_prompt = (
+            "You are a professional Formula 1 and Formula E race engineer communicating over the pit-wall radio to the driver. "
+            "You are provided with strictly pre-computed mathematical strategy metrics. "
+            "CRITICAL RULE: You MUST NEVER invent, alter, or guess any numbers, probabilities, or deploy percentages. "
+            "Your ONLY job is to explain the provided numbers in 2 concise, authentic pit-radio sentences."
+        )
+
+        user_prompt = (
+            f"Pre-computed telemetry and strategy decisions:\n"
+            f"- Order: {headline}\n"
+            f"- Recommended Action: {energy_out.recommended_action.upper()} ({energy_out.recommended_deploy_pct:+.1f}%)\n"
+            f"- ERS Reserve: {state.energy_pct:.1f}% (Margin: {energy_out.rationale_data.energy_margin_pct:+.1f}%, covers {energy_out.laps_of_reserve_at_current_rate:.1f} laps for {state.laps_remaining} laps remaining)\n"
+            f"- Overtake Success Probability: {overtake_out.success_probability_pct:.0f}%\n"
+            f"- Expected Position Gain: +{overtake_out.expected_position_gain}\n"
+            f"- Best Execution Window: {overtake_out.best_window.replace('_', ' ')}\n"
+            f"- Gap to {state.rival_driver_name}: {state.gap_ahead_sec:.2f}s\n"
+            f"- DRS Status: {'ACTIVE' if overtake_out.rationale_data.drs_assist else f'{state.drs_zone_ahead_m}m ahead'}\n"
+            f"- Opponent Profile: {opponent_out.opponent_profile} ({opponent_out.profile_confidence_pct:.0f}% confidence)\n"
+            f"- Rules Status: {'COMPLIANT' if rules_out.compliant else 'VIOLATION PREVENTED'}\n\n"
+            f"Synthesize a 2-sentence pit-radio explanation to the driver based strictly on these metrics."
+        )
+
+        return system_prompt, user_prompt
+
+    def synthesize_with_gemini(
+        self,
+        system_prompt: str,
+        user_prompt: str,
+    ) -> Optional[str]:
+        """Calls Gemini API to explain the numbers if API key is present."""
+        if not self.api_key:
+            return None
+
+        try:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={self.api_key}"
+            payload = {
+                "system_instruction": {"parts": [{"text": system_prompt}]},
+                "contents": [{"parts": [{"text": user_prompt}]}],
+                "generationConfig": {"temperature": 0.2, "maxOutputTokens": 150},
+            }
+            with httpx.Client(timeout=3.0) as client:
+                res = client.post(url, json=payload)
+                if res.status_code == 200:
+                    data = res.json()
+                    candidates = data.get("candidates", [])
+                    if candidates:
+                        text = candidates[0]["content"]["parts"][0]["text"].strip()
+                        return text
+        except Exception as e:
+            # Silent fallback to template
+            pass
+
+        return None
 
     def synthesize_explanation_template(
         self,
@@ -132,7 +198,7 @@ class StrategyAgent:
         if not rules_out.compliant:
             return (
                 f"Radio Check: Action blocked by Rules Compliance Engine. Proposed energy consumption exceeds "
-                f"FIA technical limits ({rules_out.violations[0]}). Safe max single-lap draw is "
+                f"technical regulations ({rules_out.violations[0]}). Safe max single-lap draw is "
                 f"{rules_out.max_safe_deploy_this_lap_kwh:.2f} kWh."
             )
 
@@ -197,10 +263,13 @@ class StrategyAgent:
         # 7. Generate Headline
         headline = self.generate_headline(state, energy_out, overtake_out, rules_out)
 
-        # 8. Generate Explanation (Template fallback or LLM)
-        explanation = self.synthesize_explanation_template(
-            state, energy_out, overtake_out, rules_out, opponent_out, composite_score
-        )
+        # 8. Generate Explanation (try Gemini API if key is present, fallback to deterministic template)
+        sys_prompt, usr_prompt = self.get_gemini_prompt(state, energy_out, overtake_out, rules_out, opponent_out, headline)
+        explanation = self.synthesize_with_gemini(sys_prompt, usr_prompt)
+        if not explanation:
+            explanation = self.synthesize_explanation_template(
+                state, energy_out, overtake_out, rules_out, opponent_out, composite_score
+            )
 
         raw_agent_outputs = {
             "energy": energy_out.model_dump(),

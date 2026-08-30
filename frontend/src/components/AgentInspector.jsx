@@ -190,7 +190,7 @@ export default function AgentInspector({ rawOutputs }) {
 
           <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
-              <span>Per-Lap Limit (Art 34.2):</span>
+              <span>Per-Lap Demo Limit:</span>
               <strong className="font-mono" style={{ color: "#fff" }}>{rules?.per_lap_limit_kwh?.toFixed(1)} kWh</strong>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
