@@ -236,26 +236,32 @@ class TestTrackShiftCopilot(unittest.TestCase):
     def test_11_baseline_comparison_monza(self):
         """Test Baseline Comparison on Monza: Copilot outperforms Always-Conserve and Always-Attack."""
         engine = BacktestingEngine()
-        comparison = engine.run_baseline_comparison("monza_2023_battle")
-        scorecards = comparison["scorecards"]
+        comparison = engine.run_baseline_comparison("monza")
+        
+        # Verify top-level spec keys
+        self.assertEqual(comparison["race"], "monza")
+        self.assertIn("strategies", comparison)
+        self.assertIn("ai_system", comparison["strategies"])
+        self.assertIn("always_conserve", comparison["strategies"])
+        self.assertIn("always_attack", comparison["strategies"])
 
-        copilot = scorecards["copilot"]
-        conserve = scorecards["always_conserve"]
-        attack = scorecards["always_attack"]
+        ai = comparison["strategies"]["ai_system"]
+        conserve = comparison["strategies"]["always_conserve"]
+        attack = comparison["strategies"]["always_attack"]
 
         # Copilot gains position and has 0 rule violations
-        self.assertEqual(copilot["rule_violations_count"], 0)
-        self.assertGreaterEqual(copilot["net_position_delta"], 0)
-        self.assertGreater(copilot["energy_remaining_pct"], 3.0)
+        self.assertEqual(ai["violations"], 0)
+        self.assertGreaterEqual(ai["position_delta"], 0)
+        self.assertGreater(ai["energy_remaining_pct"], 3)
 
         # Conserve gains 0 positions and leaves high unused energy
-        self.assertEqual(conserve["rule_violations_count"], 0)
-        self.assertEqual(conserve["overtake_attempts"], 0)
-        self.assertGreater(conserve["energy_remaining_pct"], copilot["energy_remaining_pct"])
+        self.assertEqual(conserve["violations"], 0)
+        self.assertEqual(conserve["attempts"], 0)
+        self.assertGreater(conserve["energy_remaining_pct"], ai["energy_remaining_pct"])
 
         # Attack accumulates rule violations and finishes worse or depleted
-        self.assertGreater(attack["rule_violations_count"], 0)
-        self.assertLess(attack["energy_remaining_pct"], copilot["energy_remaining_pct"])
+        self.assertGreater(attack["violations"], 0)
+        self.assertLess(attack["energy_remaining_pct"], ai["energy_remaining_pct"])
 
     def test_12_all_baselines_summary_cross_circuit(self):
         """Test 3-Circuit Baseline Summary across Monza, Silverstone, and Berlin."""
@@ -270,6 +276,40 @@ class TestTrackShiftCopilot(unittest.TestCase):
         # Copilot average net delta is higher than both naive baselines
         self.assertGreater(cross["copilot"]["avg_net_position_delta"], cross["always_conserve"]["avg_net_position_delta"])
         self.assertGreater(cross["copilot"]["avg_net_position_delta"], cross["always_attack"]["avg_net_position_delta"])
+
+    def test_13_baseline_functions_berlin_formula_e(self):
+        """Test baseline strategy functions on Berlin Formula E state."""
+        from backend.agents.baselines import always_conserve_strategy, always_attack_strategy
+        state_fe = RaceState(
+            lap_number=10,
+            laps_remaining=30,
+            energy_pct=75.0,
+            energy_used_this_lap_kwh=1.0,
+            max_energy_per_lap_kwh=4.0,
+            total_energy_budget_kwh=52.0,
+            total_energy_used_kwh=12.0,
+            gap_ahead_sec=0.45,
+            gap_behind_sec=1.5,
+            tyre_wear_pct=25.0,
+            tyre_compound="medium",
+            track_position=3,
+            in_attack_mode_zone=True,
+            attack_mode_available=True,
+            drs_zone_ahead_m=0,
+            sector=2,
+            recent_gaps_ahead=[0.6, 0.5, 0.45],
+            rival_driver_name="Mitch Evans (P2)",
+        )
+        conserve_out = always_conserve_strategy(state_fe)
+        self.assertEqual(conserve_out["recommended_action"], "conserve")
+        self.assertFalse(conserve_out["overtake_recommended"])
+        self.assertEqual(conserve_out["series_type"], "Formula E Gen3")
+
+        attack_out = always_attack_strategy(state_fe)
+        self.assertEqual(attack_out["recommended_action"], "deploy")
+        self.assertTrue(attack_out["overtake_recommended"])
+        self.assertEqual(attack_out["series_type"], "Formula E Gen3")
+        self.assertGreater(attack_out["expected_kwh_draw"], conserve_out["expected_kwh_draw"])
 
 
 if __name__ == "__main__":

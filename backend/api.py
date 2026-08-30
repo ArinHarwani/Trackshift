@@ -55,7 +55,8 @@ class OverrideStateRequest(BaseModel):
 
 
 class BacktestRunRequest(BaseModel):
-    scenario_id: str = "berlin_eprix_gen3"
+    scenario_id: Optional[str] = "berlin_eprix_gen3"
+    race: Optional[str] = None
 
 
 @app.get("/api/health")
@@ -161,13 +162,15 @@ def run_backtest(req: BacktestRunRequest):
 
 
 @app.post("/api/backtest/compare-baselines")
+@app.post("/backtest/compare-baselines")
 def compare_baselines(req: BacktestRunRequest = BacktestRunRequest()):
     """
     Executes 3-way head-to-head baseline comparison:
     TrackShift Copilot vs Always Conserve vs Always Attack on historical FastF1 session data.
     """
     try:
-        comparison_report = backtesting_engine.run_baseline_comparison(scenario_id=req.scenario_id)
+        target = req.race or req.scenario_id or "monza"
+        comparison_report = backtesting_engine.run_baseline_comparison(scenario_id=target)
         return comparison_report
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Baseline comparison failed: {str(e)}")

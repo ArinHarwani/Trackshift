@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from "react";
-import { Database, Zap, CheckCircle2, ShieldCheck, Play, Crosshair, BarChart3, AlertTriangle, Trophy, Layers, ArrowUpRight, ArrowDownRight, Minus } from "lucide-react";
+import React, { useState, useEffect, useCallback } from "react";
+import { Database, Zap, CheckCircle2, ShieldCheck, Play, Crosshair, BarChart3, AlertTriangle, Trophy, Layers, ArrowUpRight, ArrowDownRight, Minus, RefreshCw, Loader2 } from "lucide-react";
 
 /**
  * BacktestStudio — Module G
  * FastF1 Historical Grand Prix & E-Prix Replay + 3-Way Baseline Value-Add Scorecard
- * Compares TrackShift Copilot against "Always Conserve" and "Always Attack" across Monza, Silverstone, and Berlin Tempelhof.
+ * Empirical validation: TrackShift Copilot vs "Always Conserve" vs "Always Attack".
  */
 export default function BacktestStudio({
   scenarios = [],
@@ -25,20 +25,26 @@ export default function BacktestStudio({
   const lapByLap = backtestReport?.lap_by_lap || [];
   const activeLapData = lapByLap[selectedLapIndex] || lapByLap[0];
 
-  useEffect(() => {
-    setSelectedLapIndex(0);
-  }, [selectedScenarioId]);
+  // Helper to extract race slug
+  const getRaceSlug = (id) => {
+    if (!id) return "monza";
+    const lower = id.toLowerCase();
+    if (lower.includes("monza")) return "monza";
+    if (lower.includes("silverstone")) return "silverstone";
+    if (lower.includes("berlin") || lower.includes("eprix")) return "berlin";
+    return id;
+  };
 
-  // Fetch 3-way baseline comparison data
-  useEffect(() => {
-    if (!selectedScenarioId) return;
+  // Re-run baseline comparison function
+  const runBaselineComparison = useCallback((scenarioId) => {
+    const raceKey = getRaceSlug(scenarioId || selectedScenarioId);
     setBaselineLoading(true);
 
     Promise.all([
       fetch(`${API_BASE}/backtest/compare-baselines`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ scenario_id: selectedScenarioId }),
+        body: JSON.stringify({ race: raceKey, scenario_id: scenarioId || selectedScenarioId }),
       }).then((r) => (r.ok ? r.json() : null)),
       fetch(`${API_BASE}/backtest/baselines-summary`).then((r) => (r.ok ? r.json() : null)),
     ])
@@ -47,14 +53,33 @@ export default function BacktestStudio({
         if (summaryRes) setSummaryData(summaryRes);
       })
       .catch((err) => console.error("Baseline fetch error:", err))
-      .finally(() => setBaselineLoading(false));
+      .finally(() => {
+        setTimeout(() => setBaselineLoading(false), 200);
+      });
   }, [selectedScenarioId]);
 
+  useEffect(() => {
+    setSelectedLapIndex(0);
+    runBaselineComparison(selectedScenarioId);
+  }, [selectedScenarioId, runBaselineComparison]);
+
+  const handleScorecardButtonClick = () => {
+    setActiveViewMode("scorecard");
+    runBaselineComparison(selectedScenarioId);
+  };
+
+  const handleTelemetryButtonClick = () => {
+    setActiveViewMode("telemetry");
+  };
+
   const scorecards = baselineData?.scorecards || null;
+  const strategies = baselineData?.strategies || null;
   const copilotCard = scorecards?.copilot;
   const conserveCard = scorecards?.always_conserve;
   const attackCard = scorecards?.always_attack;
   const crossSummary = summaryData?.cross_circuit_summary;
+
+  const isFormulaE = selectedScenarioId?.includes("berlin") || selectedScenarioId?.includes("eprix");
 
   return (
     <div className="pit-panel" style={{ padding: "20px", marginBottom: "20px" }}>
@@ -79,20 +104,21 @@ export default function BacktestStudio({
               FASTF1 HISTORICAL RACE BACKTESTING // MODULE G
             </h3>
             <p style={{ fontSize: "0.7rem", color: "var(--text-secondary)" }}>
-              Head-to-head empirical validation vs naive baselines across real Grand Prix and E-Prix telemetry
+              Head-to-head empirical validation vs naive baselines across real Grand Prix & E-Prix telemetry
             </p>
           </div>
         </div>
 
-        {/* View Mode Toggle */}
+        {/* View Mode Toggle Buttons */}
         <div style={{ display: "flex", background: "var(--surface-panel-subtle)", border: "1px solid var(--border-subtle)", borderRadius: "3px", padding: "2px" }}>
           <button
-            onClick={() => setActiveViewMode("scorecard")}
+            id="btn-value-add-scorecard"
+            onClick={handleScorecardButtonClick}
             style={{
               display: "flex",
               alignItems: "center",
               gap: "6px",
-              padding: "6px 12px",
+              padding: "6px 14px",
               borderRadius: "2px",
               border: "none",
               background: activeViewMode === "scorecard" ? "var(--purple-optimal)" : "transparent",
@@ -103,16 +129,21 @@ export default function BacktestStudio({
               transition: "all 0.15s ease",
             }}
           >
-            <BarChart3 size={13} />
+            {baselineLoading && activeViewMode === "scorecard" ? (
+              <Loader2 size={13} className="animate-spin" />
+            ) : (
+              <BarChart3 size={13} />
+            )}
             <span className="font-display">VALUE-ADD SCORECARD</span>
           </button>
           <button
-            onClick={() => setActiveViewMode("telemetry")}
+            id="btn-historical-telemetry"
+            onClick={handleTelemetryButtonClick}
             style={{
               display: "flex",
               alignItems: "center",
               gap: "6px",
-              padding: "6px 12px",
+              padding: "6px 14px",
               borderRadius: "2px",
               border: "none",
               background: activeViewMode === "telemetry" ? "var(--purple-optimal)" : "transparent",
@@ -133,7 +164,7 @@ export default function BacktestStudio({
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "10px", marginBottom: "18px" }}>
         {scenarios.map((sc) => {
           const isSelected = sc.id === selectedScenarioId;
-          const isFormulaE = sc.id.includes("berlin") || sc.id.includes("eprix");
+          const isFeCard = sc.id.includes("berlin") || sc.id.includes("eprix");
           return (
             <button
               key={sc.id}
@@ -159,11 +190,11 @@ export default function BacktestStudio({
                     fontWeight: 800,
                     padding: "1px 5px",
                     borderRadius: "2px",
-                    background: isFormulaE ? "rgba(0, 240, 255, 0.15)" : "rgba(225, 6, 0, 0.15)",
-                    color: isFormulaE ? "#00f0ff" : "#ff4545",
+                    background: isFeCard ? "rgba(0, 240, 255, 0.15)" : "rgba(225, 6, 0, 0.15)",
+                    color: isFeCard ? "#00f0ff" : "#ff4545",
                   }}
                 >
-                  {isFormulaE ? "FORMULA E GEN3" : "FORMULA 1"}
+                  {isFeCard ? "FORMULA E GEN3" : "FORMULA 1"}
                 </span>
               </div>
               <div style={{ fontSize: "0.85rem", fontWeight: 800, color: isSelected ? "#fff" : "var(--text-primary)", marginBottom: "4px" }}>
@@ -182,8 +213,29 @@ export default function BacktestStudio({
       {/* ========================================================================= */}
       {activeViewMode === "scorecard" && (
         <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+          {/* Loading State Spinner Banner */}
+          {baselineLoading && (
+            <div
+              style={{
+                background: "rgba(192, 76, 253, 0.1)",
+                border: "1px solid var(--purple-optimal)",
+                borderRadius: "3px",
+                padding: "16px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "12px",
+              }}
+            >
+              <Loader2 size={20} color="var(--purple-optimal)" className="animate-spin" />
+              <span className="font-display" style={{ fontSize: "0.82rem", fontWeight: 800, color: "#fff" }}>
+                RUNNING DETERMINISTIC 3-WAY COMPARISON (COPILOT vs ALWAYS CONSERVE vs ALWAYS ATTACK)...
+              </span>
+            </div>
+          )}
+
           {/* Dynamic Headline Callout */}
-          {baselineData && (
+          {baselineData && !baselineLoading && (
             <div
               style={{
                 background: "rgba(192, 76, 253, 0.08)",
@@ -207,8 +259,156 @@ export default function BacktestStudio({
             </div>
           )}
 
-          {/* 3-Column Strategy Comparison Cards */}
-          {scorecards && (
+          {/* 3-Column Comparative Bar Chart per Metric */}
+          {scorecards && !baselineLoading && (
+            <div style={{ background: "var(--surface-panel-subtle)", border: "1px solid var(--border-subtle)", borderRadius: "3px", padding: "16px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
+                <span className="font-display" style={{ fontSize: "0.78rem", fontWeight: 900, color: "var(--text-primary)" }}>
+                  HEAD-TO-HEAD 3-WAY COMPARISON CHARTS // {baselineData.scenario_title.toUpperCase()}
+                </span>
+                <span style={{ fontSize: "0.68rem", color: "var(--purple-optimal)", fontWeight: 700 }}>
+                  IDENTICAL {baselineData.total_laps} LAPS & FIXED RNG SEED
+                </span>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "16px" }}>
+                {/* 1. Net Position Delta */}
+                <div style={{ background: "rgba(0,0,0,0.25)", padding: "12px", borderRadius: "3px", border: "1px solid rgba(255,255,255,0.05)" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
+                    <span style={{ fontSize: "0.72rem", color: "var(--text-secondary)", fontWeight: 800 }}>
+                      1. NET TRACK POSITION GAIN
+                    </span>
+                    <span style={{ fontSize: "0.65rem", color: "var(--text-dim)" }}>(Higher is better)</span>
+                  </div>
+
+                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                    <div>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.68rem", marginBottom: "3px" }}>
+                        <span style={{ color: "var(--purple-optimal)", fontWeight: 800 }}>TrackShift Copilot (AI)</span>
+                        <strong className="font-mono" style={{ color: "#fff" }}>
+                          {copilotCard.net_position_delta >= 0 ? `+${copilotCard.net_position_delta}` : copilotCard.net_position_delta} Pos
+                        </strong>
+                      </div>
+                      <div style={{ height: "12px", background: "rgba(255,255,255,0.06)", borderRadius: "2px", overflow: "hidden" }}>
+                        <div style={{ width: `${Math.max(15, (copilotCard.net_position_delta + 2) * 25)}%`, height: "100%", background: "var(--purple-optimal)" }} />
+                      </div>
+                    </div>
+
+                    <div>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.68rem", marginBottom: "3px" }}>
+                        <span style={{ color: "var(--yellow-caution)", fontWeight: 800 }}>Always Conserve (Naive)</span>
+                        <strong className="font-mono" style={{ color: "var(--yellow-caution)" }}>
+                          {conserveCard.net_position_delta} Pos
+                        </strong>
+                      </div>
+                      <div style={{ height: "12px", background: "rgba(255,255,255,0.06)", borderRadius: "2px", overflow: "hidden" }}>
+                        <div style={{ width: "50%", height: "100%", background: "var(--yellow-caution)" }} />
+                      </div>
+                    </div>
+
+                    <div>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.68rem", marginBottom: "3px" }}>
+                        <span style={{ color: "var(--red-violation)", fontWeight: 800 }}>Always Attack (Naive)</span>
+                        <strong className="font-mono" style={{ color: "var(--red-violation)" }}>
+                          {attackCard.net_position_delta} Pos
+                        </strong>
+                      </div>
+                      <div style={{ height: "12px", background: "rgba(255,255,255,0.06)", borderRadius: "2px", overflow: "hidden" }}>
+                        <div style={{ width: `${Math.max(12, (attackCard.net_position_delta + 2) * 25)}%`, height: "100%", background: "var(--red-violation)" }} />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. Final Energy Remaining % */}
+                <div style={{ background: "rgba(0,0,0,0.25)", padding: "12px", borderRadius: "3px", border: "1px solid rgba(255,255,255,0.05)" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
+                    <span style={{ fontSize: "0.72rem", color: "var(--text-secondary)", fontWeight: 800 }}>
+                      2. USABLE ENERGY AT FINISH
+                    </span>
+                    <span style={{ fontSize: "0.65rem", color: "var(--text-dim)" }}>(Target: 5% - 8%)</span>
+                  </div>
+
+                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                    <div>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.68rem", marginBottom: "3px" }}>
+                        <span style={{ color: "var(--purple-optimal)", fontWeight: 800 }}>TrackShift Copilot (Target)</span>
+                        <strong className="font-mono" style={{ color: "var(--green-compliant)" }}>{copilotCard.energy_remaining_pct}%</strong>
+                      </div>
+                      <div style={{ height: "12px", background: "rgba(255,255,255,0.06)", borderRadius: "2px", overflow: "hidden" }}>
+                        <div style={{ width: `${copilotCard.energy_remaining_pct * 3.5}%`, height: "100%", background: "var(--green-compliant)" }} />
+                      </div>
+                    </div>
+
+                    <div>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.68rem", marginBottom: "3px" }}>
+                        <span style={{ color: "var(--yellow-caution)", fontWeight: 800 }}>Always Conserve (Unused)</span>
+                        <strong className="font-mono" style={{ color: "var(--yellow-caution)" }}>{conserveCard.energy_remaining_pct}%</strong>
+                      </div>
+                      <div style={{ height: "12px", background: "rgba(255,255,255,0.06)", borderRadius: "2px", overflow: "hidden" }}>
+                        <div style={{ width: `${conserveCard.energy_remaining_pct * 3.5}%`, height: "100%", background: "var(--yellow-caution)" }} />
+                      </div>
+                    </div>
+
+                    <div>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.68rem", marginBottom: "3px" }}>
+                        <span style={{ color: "var(--red-violation)", fontWeight: 800 }}>Always Attack (Depleted)</span>
+                        <strong className="font-mono" style={{ color: "var(--red-violation)" }}>{attackCard.energy_remaining_pct}%</strong>
+                      </div>
+                      <div style={{ height: "12px", background: "rgba(255,255,255,0.06)", borderRadius: "2px", overflow: "hidden" }}>
+                        <div style={{ width: "3%", height: "100%", background: "var(--red-violation)" }} />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. FIA Rule Violations */}
+                <div style={{ background: "rgba(0,0,0,0.25)", padding: "12px", borderRadius: "3px", border: "1px solid rgba(255,255,255,0.05)" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
+                    <span style={{ fontSize: "0.72rem", color: "var(--text-secondary)", fontWeight: 800 }}>
+                      3. FIA REGULATORY VIOLATIONS
+                    </span>
+                    <span style={{ fontSize: "0.65rem", color: "var(--text-dim)" }}>(Target: 0 Breaches)</span>
+                  </div>
+
+                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                    <div>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.68rem", marginBottom: "3px" }}>
+                        <span style={{ color: "var(--purple-optimal)", fontWeight: 800 }}>TrackShift Copilot</span>
+                        <strong className="font-display" style={{ color: "var(--green-compliant)" }}>0 (100% COMPLIANT)</strong>
+                      </div>
+                      <div style={{ height: "12px", background: "rgba(255,255,255,0.06)", borderRadius: "2px", overflow: "hidden" }}>
+                        <div style={{ width: "100%", height: "100%", background: "var(--green-compliant)" }} />
+                      </div>
+                    </div>
+
+                    <div>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.68rem", marginBottom: "3px" }}>
+                        <span style={{ color: "var(--yellow-caution)", fontWeight: 800 }}>Always Conserve</span>
+                        <strong className="font-display" style={{ color: "var(--green-compliant)" }}>0 SAFE</strong>
+                      </div>
+                      <div style={{ height: "12px", background: "rgba(255,255,255,0.06)", borderRadius: "2px", overflow: "hidden" }}>
+                        <div style={{ width: "100%", height: "100%", background: "var(--green-compliant)" }} />
+                      </div>
+                    </div>
+
+                    <div>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.68rem", marginBottom: "3px" }}>
+                        <span style={{ color: "var(--red-violation)", fontWeight: 800 }}>Always Attack</span>
+                        <strong className="font-display" style={{ color: "var(--red-violation)" }}>{attackCard.rule_violations_count} BREACHES</strong>
+                      </div>
+                      <div style={{ height: "12px", background: "rgba(255,255,255,0.06)", borderRadius: "2px", overflow: "hidden" }}>
+                        <div style={{ width: "100%", height: "100%", background: "var(--red-violation)" }} />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 3-Column Strategy Detailed Cards */}
+          {scorecards && !baselineLoading && (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "14px" }}>
               {/* 1. TrackShift Copilot */}
               <div
@@ -238,7 +438,7 @@ export default function BacktestStudio({
                         color: "#fff",
                       }}
                     >
-                      OUR AI SYSTEM
+                      AI SYSTEM (OURS)
                     </span>
                   </div>
 
@@ -435,133 +635,8 @@ export default function BacktestStudio({
             </div>
           )}
 
-          {/* Visual Head-to-Head Comparative Bars */}
-          {scorecards && (
-            <div style={{ background: "var(--surface-panel-subtle)", border: "1px solid var(--border-subtle)", borderRadius: "3px", padding: "16px" }}>
-              <div className="font-display" style={{ fontSize: "0.75rem", fontWeight: 800, color: "var(--text-secondary)", marginBottom: "14px" }}>
-                HEAD-TO-HEAD COMPARATIVE VISUALIZATION // {baselineData.scenario_title}
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "16px" }}>
-                {/* 1. Net Position Delta */}
-                <div>
-                  <span style={{ fontSize: "0.72rem", color: "var(--text-secondary)", fontWeight: 700 }}>
-                    1. Net Track Position Delta (Higher is Better)
-                  </span>
-                  <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "6px" }}>
-                    <div>
-                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.68rem", marginBottom: "2px" }}>
-                        <span style={{ color: "var(--purple-optimal)", fontWeight: 700 }}>TrackShift Copilot</span>
-                        <span className="font-mono" style={{ color: "#fff", fontWeight: 800 }}>+{copilotCard.net_position_delta} Pos</span>
-                      </div>
-                      <div style={{ height: "10px", background: "rgba(255,255,255,0.06)", borderRadius: "2px", overflow: "hidden" }}>
-                        <div style={{ width: `${Math.max(10, (copilotCard.net_position_delta + 2) * 25)}%`, height: "100%", background: "var(--purple-optimal)" }} />
-                      </div>
-                    </div>
-
-                    <div>
-                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.68rem", marginBottom: "2px" }}>
-                        <span style={{ color: "var(--yellow-caution)", fontWeight: 700 }}>Always Conserve</span>
-                        <span className="font-mono" style={{ color: "#fff", fontWeight: 800 }}>{conserveCard.net_position_delta} Pos</span>
-                      </div>
-                      <div style={{ height: "10px", background: "rgba(255,255,255,0.06)", borderRadius: "2px", overflow: "hidden" }}>
-                        <div style={{ width: "50%", height: "100%", background: "var(--yellow-caution)" }} />
-                      </div>
-                    </div>
-
-                    <div>
-                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.68rem", marginBottom: "2px" }}>
-                        <span style={{ color: "var(--red-violation)", fontWeight: 700 }}>Always Attack</span>
-                        <span className="font-mono" style={{ color: "var(--red-violation)", fontWeight: 800 }}>{attackCard.net_position_delta} Pos</span>
-                      </div>
-                      <div style={{ height: "10px", background: "rgba(255,255,255,0.06)", borderRadius: "2px", overflow: "hidden" }}>
-                        <div style={{ width: `${Math.max(10, (attackCard.net_position_delta + 2) * 25)}%`, height: "100%", background: "var(--red-violation)" }} />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 2. Usable Energy Remaining at Finish */}
-                <div>
-                  <span style={{ fontSize: "0.72rem", color: "var(--text-secondary)", fontWeight: 700 }}>
-                    2. Energy Reserve at Finish Line (Target: 5% - 8%)
-                  </span>
-                  <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "6px" }}>
-                    <div>
-                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.68rem", marginBottom: "2px" }}>
-                        <span style={{ color: "var(--purple-optimal)", fontWeight: 700 }}>TrackShift Copilot (Optimal)</span>
-                        <span className="font-mono" style={{ color: "var(--green-compliant)", fontWeight: 800 }}>{copilotCard.energy_remaining_pct}%</span>
-                      </div>
-                      <div style={{ height: "10px", background: "rgba(255,255,255,0.06)", borderRadius: "2px", overflow: "hidden" }}>
-                        <div style={{ width: `${copilotCard.energy_remaining_pct * 3.5}%`, height: "100%", background: "var(--green-compliant)" }} />
-                      </div>
-                    </div>
-
-                    <div>
-                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.68rem", marginBottom: "2px" }}>
-                        <span style={{ color: "var(--yellow-caution)", fontWeight: 700 }}>Always Conserve (Unused Waste)</span>
-                        <span className="font-mono" style={{ color: "var(--yellow-caution)", fontWeight: 800 }}>{conserveCard.energy_remaining_pct}%</span>
-                      </div>
-                      <div style={{ height: "10px", background: "rgba(255,255,255,0.06)", borderRadius: "2px", overflow: "hidden" }}>
-                        <div style={{ width: `${conserveCard.energy_remaining_pct * 3.5}%`, height: "100%", background: "var(--yellow-caution)" }} />
-                      </div>
-                    </div>
-
-                    <div>
-                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.68rem", marginBottom: "2px" }}>
-                        <span style={{ color: "var(--red-violation)", fontWeight: 700 }}>Always Attack (Depleted Early)</span>
-                        <span className="font-mono" style={{ color: "var(--red-violation)", fontWeight: 800 }}>{attackCard.energy_remaining_pct}%</span>
-                      </div>
-                      <div style={{ height: "10px", background: "rgba(255,255,255,0.06)", borderRadius: "2px", overflow: "hidden" }}>
-                        <div style={{ width: "2%", height: "100%", background: "var(--red-violation)" }} />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 3. FIA Rule Violations */}
-                <div>
-                  <span style={{ fontSize: "0.72rem", color: "var(--text-secondary)", fontWeight: 700 }}>
-                    3. Regulatory FIA Violations (Target: 0 Breaches)
-                  </span>
-                  <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "6px" }}>
-                    <div>
-                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.68rem", marginBottom: "2px" }}>
-                        <span style={{ color: "var(--purple-optimal)", fontWeight: 700 }}>TrackShift Copilot</span>
-                        <span className="font-display" style={{ color: "var(--green-compliant)", fontWeight: 800 }}>0 (100% SAFE)</span>
-                      </div>
-                      <div style={{ height: "10px", background: "rgba(255,255,255,0.06)", borderRadius: "2px", overflow: "hidden" }}>
-                        <div style={{ width: "100%", height: "100%", background: "var(--green-compliant)" }} />
-                      </div>
-                    </div>
-
-                    <div>
-                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.68rem", marginBottom: "2px" }}>
-                        <span style={{ color: "var(--yellow-caution)", fontWeight: 700 }}>Always Conserve</span>
-                        <span className="font-display" style={{ color: "var(--green-compliant)", fontWeight: 800 }}>0 SAFE</span>
-                      </div>
-                      <div style={{ height: "10px", background: "rgba(255,255,255,0.06)", borderRadius: "2px", overflow: "hidden" }}>
-                        <div style={{ width: "100%", height: "100%", background: "var(--green-compliant)" }} />
-                      </div>
-                    </div>
-
-                    <div>
-                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.68rem", marginBottom: "2px" }}>
-                        <span style={{ color: "var(--red-violation)", fontWeight: 700 }}>Always Attack</span>
-                        <span className="font-display" style={{ color: "var(--red-violation)", fontWeight: 800 }}>{attackCard.rule_violations_count} BREACHES</span>
-                      </div>
-                      <div style={{ height: "10px", background: "rgba(255,255,255,0.06)", borderRadius: "2px", overflow: "hidden" }}>
-                        <div style={{ width: "100%", height: "100%", background: "var(--red-violation)" }} />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* Cross-Circuit 3-Race Comprehensive Table */}
-          {summaryData && (
+          {summaryData && !baselineLoading && (
             <div style={{ background: "var(--surface-panel-subtle)", border: "1px solid var(--border-subtle)", borderRadius: "3px", padding: "16px" }}>
               <div className="font-display" style={{ fontSize: "0.75rem", fontWeight: 800, color: "var(--purple-optimal)", marginBottom: "10px" }}>
                 CROSS-CIRCUIT VALUE-ADD SUMMARY // ALL 3 GRAND PRIX & E-PRIX SESSIONS

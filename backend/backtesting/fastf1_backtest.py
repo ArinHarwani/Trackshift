@@ -14,6 +14,7 @@ from typing import List, Dict, Any, Optional
 from backend.schemas.race_state import RaceState, StrategyAgentOutput, EnergyAgentOutput, EnergyAgentRationale
 from backend.agents.strategy_agent import StrategyAgent
 from backend.agents.rules_agent import RulesAgent
+from backend.agents.baselines import always_conserve_strategy, always_attack_strategy
 
 
 class BacktestingEngine:
@@ -355,14 +356,17 @@ class BacktestingEngine:
             "lap_by_lap": results,
         }
 
-    def run_baseline_comparison(self, scenario_id: str = "monza_2023_battle") -> Dict[str, Any]:
+    def run_baseline_comparison(self, scenario_id: str = "monza") -> Dict[str, Any]:
         """
         Runs the 3-way head-to-head comparison on the exact same FastF1 session data:
         1. TrackShift Copilot (AI Multi-Agent System)
         2. Always Conserve (Zero voluntary deploy, no overtake attempts)
         3. Always Attack (Max voluntary deploy every lap, attempts overtake whenever gap <= 2.0s)
         """
-        if scenario_id == "monza_2023_battle":
+        norm_key = (scenario_id or "monza").lower().strip()
+        if "monza" in norm_key:
+            canonical_id = "monza_2023_battle"
+            race_slug = "monza"
             laps_data = self.fetch_real_fastf1_laps(2023, "Monza", "SAI")
             scenario_meta = {
                 "title": "2023 Italian GP (Monza)",
@@ -370,7 +374,9 @@ class BacktestingEngine:
                 "series": "Formula 1",
                 "seed": 42,
             }
-        elif scenario_id == "silverstone_2024_undercut":
+        elif "silverstone" in norm_key:
+            canonical_id = "silverstone_2024_undercut"
+            race_slug = "silverstone"
             laps_data = self.curated_scenarios.get("silverstone_2024_undercut")
             scenario_meta = {
                 "title": "2024 British GP (Silverstone)",
@@ -379,7 +385,8 @@ class BacktestingEngine:
                 "seed": 43,
             }
         else:
-            scenario_id = "berlin_eprix_gen3"
+            canonical_id = "berlin_eprix_gen3"
+            race_slug = "berlin"
             laps_data = self.curated_scenarios.get("berlin_eprix_gen3")
             scenario_meta = {
                 "title": "2024 Berlin E-Prix",
@@ -448,7 +455,7 @@ class BacktestingEngine:
             })
 
         # ----------------------------------------------------
-        # 2. RUN ALWAYS CONSERVE BASELINE
+        # 2. RUN ALWAYS CONSERVE BASELINE (via always_conserve_strategy)
         # ----------------------------------------------------
         conserve_pos = start_pos
         conserve_total_used = 0.0
@@ -457,15 +464,15 @@ class BacktestingEngine:
         conserve_successes = 0
         conserve_traces = []
 
-        conserve_deploy_pct = -22.0 if is_formula_e else -18.0
-
         for lap_dict in laps_data:
             state = RaceState(**lap_dict)
+            conserve_dec = always_conserve_strategy(state)
+            conserve_deploy_pct = conserve_dec["recommended_deploy_pct"]
             lap_kwh = nominal_kwh_per_lap * (0.80 + (conserve_deploy_pct / 100.0) * 0.12)
             conserve_total_used += lap_kwh
 
             dummy_energy = EnergyAgentOutput(
-                recommended_action="conserve",
+                recommended_action=conserve_dec["recommended_action"],
                 recommended_deploy_pct=conserve_deploy_pct,
                 energy_remaining_after_action_pct=state.energy_pct,
                 laps_of_reserve_at_current_rate=25.0,
@@ -475,7 +482,7 @@ class BacktestingEngine:
                     target_kwh_per_lap=lap_kwh,
                     nominal_kwh_per_lap=nominal_kwh_per_lap,
                     energy_margin_pct=22.0,
-                    details="Conservative baseline",
+                    details=conserve_dec["rationale"],
                 ),
             )
             rules_out = self.rules_agent.evaluate(state, dummy_energy)
@@ -496,7 +503,7 @@ class BacktestingEngine:
             })
 
         # ----------------------------------------------------
-        # 3. RUN ALWAYS ATTACK BASELINE
+        # 3. RUN ALWAYS ATTACK BASELINE (via always_attack_strategy)
         # ----------------------------------------------------
         rng_attack = random.Random(scenario_meta["seed"])
         attack_pos = start_pos
@@ -507,10 +514,10 @@ class BacktestingEngine:
         attack_traces = []
         attack_depleted_lap = None
 
-        attack_deploy_pct = 50.0
-
         for lap_dict in laps_data:
             state = RaceState(**lap_dict)
+            attack_dec = always_attack_strategy(state)
+            attack_deploy_pct = attack_dec["recommended_deploy_pct"]
 
             if attack_total_used >= total_energy_budget:
                 if attack_depleted_lap is None:
@@ -537,11 +544,10 @@ class BacktestingEngine:
                     target_kwh_per_lap=lap_kwh,
                     nominal_kwh_per_lap=nominal_kwh_per_lap,
                     energy_margin_pct=-45.0,
-                    details="Aggressive naive baseline",
+                    details=attack_dec["rationale"],
                 ),
             )
-            # Checked by Rules Agent
-            # For attack baseline, simulate breach on high draw laps
+            # Check single lap cap excess or budget exhaustion
             if current_deploy > 30.0 and (state.energy_used_this_lap_kwh + lap_kwh > state.max_energy_per_lap_kwh or attack_total_used > total_energy_budget * 0.92):
                 attack_violations.append(f"Lap {state.lap_number}: Article 34.2 Energy Draw Breach ({lap_kwh:.2f} kWh > max)")
 
@@ -551,10 +557,10 @@ class BacktestingEngine:
 
             attempted = False
             overtake_success = False
-            if state.gap_ahead_sec <= 2.0 and attack_total_used < total_energy_budget:
+            if attack_dec["overtake_recommended"] and attack_total_used < total_energy_budget:
                 attempted = True
                 attack_attempts += 1
-                prob = max(5.0, min(92.0, 86.0 * math.exp(-0.92 * state.gap_ahead_sec) + 8.0 - (state.tyre_wear_pct * 0.25)))
+                prob = attack_dec["overtake_probability_pct"]
                 roll = rng_attack.uniform(0.0, 100.0)
                 if roll <= prob:
                     overtake_success = True
@@ -576,7 +582,7 @@ class BacktestingEngine:
             })
 
         # ----------------------------------------------------
-        # BUILD SCORECARDS
+        # BUILD SCORECARDS & COMPARISON TOTALS
         # ----------------------------------------------------
         copilot_rem_kwh = max(0.0, round(total_energy_budget - copilot_total_used, 2))
         copilot_rem_pct = round((copilot_rem_kwh / total_energy_budget) * 100.0, 1)
@@ -590,6 +596,30 @@ class BacktestingEngine:
         attack_rem_pct = round((attack_rem_kwh / total_energy_budget) * 100.0, 1)
         attack_gain = start_pos - attack_pos
         attack_violations_count = max(3, len(set(attack_violations)))
+
+        strategies_data = {
+            "ai_system": {
+                "position_delta": copilot_gain,
+                "energy_remaining_pct": int(round(copilot_rem_pct)),
+                "violations": len(copilot_violations),
+                "attempts": copilot_attempts,
+                "successes": copilot_successes,
+            },
+            "always_conserve": {
+                "position_delta": conserve_gain,
+                "energy_remaining_pct": int(round(conserve_rem_pct)),
+                "violations": len(conserve_violations),
+                "attempts": conserve_attempts,
+                "successes": conserve_successes,
+            },
+            "always_attack": {
+                "position_delta": attack_gain,
+                "energy_remaining_pct": int(round(attack_rem_pct)),
+                "violations": attack_violations_count,
+                "attempts": attack_attempts,
+                "successes": attack_successes,
+            },
+        }
 
         scorecards = {
             "copilot": {
@@ -653,7 +683,9 @@ class BacktestingEngine:
         )
 
         return {
-            "scenario_id": scenario_id,
+            "race": race_slug,
+            "strategies": strategies_data,
+            "scenario_id": canonical_id,
             "scenario_title": scenario_meta["title"],
             "circuit": scenario_meta["circuit"],
             "series": scenario_meta["series"],
