@@ -117,7 +117,9 @@ export default function AgentInspector({ rawAgentOutputs, scoringBreakdown, comp
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
                   <span>DRS Boost Mod:</span>
                   <strong className="font-mono" style={{ color: overtake?.rationale_data?.drs_assist ? "var(--green-compliant)" : "var(--text-dim)" }}>
-                    {overtake?.rationale_data?.drs_assist ? "+18.0%" : "INACTIVE"}
+                    {overtake?.rationale_data?.drs_assist
+                      ? `+${(overtake?.rationale_data?.modifier_breakdown?.drs_assist ?? 18).toFixed(1)}%`
+                      : "INACTIVE"}
                   </strong>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
@@ -183,13 +185,13 @@ export default function AgentInspector({ rawAgentOutputs, scoringBreakdown, comp
                   <strong className="font-mono" style={{ color: "#fff" }}>{opponent?.profile_confidence_pct?.toFixed(1)}%</strong>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span>Rolling Gap Variance:</span>
-                  <strong className="font-mono" style={{ color: "#fff" }}>{opponent?.rationale_data?.gap_variance?.toFixed(4)}</strong>
+                  <span>Std Dev (Gap Σ):</span>
+                  <strong className="font-mono" style={{ color: "#fff" }}>{opponent?.signals?.lap_delta_std_dev?.toFixed(3)}s</strong>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span>Exploit Window:</span>
-                  <strong className="font-display" style={{ color: "var(--green-compliant)" }}>
-                    {opponent?.vulnerability_window?.replace(/_/g, " ").toUpperCase()}
+                  <span>Gap Variance σ²:</span>
+                  <strong className="font-mono" style={{ color: "#fff" }}>
+                    {opponent?.signals?.avg_gap_variance?.toFixed(4)}
                   </strong>
                 </div>
               </div>

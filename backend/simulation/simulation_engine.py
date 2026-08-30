@@ -52,6 +52,14 @@ class SimulationEngine:
     def get_current_state(self) -> RaceState:
         """Returns the current RaceState snapshot."""
         laps_remaining = max(0, self.total_laps - self.current_lap)
+        # Map position to realistic driver name for the car ahead
+        _driver_names = {
+            1: "Max Verstappen", 2: "Lando Norris", 3: "Charles Leclerc",
+            4: "Carlos Sainz", 5: "Lewis Hamilton", 6: "George Russell",
+            7: "Fernando Alonso", 8: "Oscar Piastri", 9: "Sergio Perez",
+        }
+        pos_ahead = max(1, self.track_position - 1)
+        rival_name = _driver_names.get(pos_ahead, f"P{pos_ahead} Car")
         return RaceState(
             lap_number=self.current_lap,
             laps_remaining=laps_remaining,
@@ -71,7 +79,7 @@ class SimulationEngine:
             sector=self.sector,
             recent_gaps_ahead=self.recent_gaps[-5:],
             track_temp_c=34.5,
-            rival_driver_name="P" + str(max(1, self.track_position - 1)) + " Car",
+            rival_driver_name=rival_name,
         )
 
     def step(self, deploy_override_pct: Optional[float] = None) -> RaceState:

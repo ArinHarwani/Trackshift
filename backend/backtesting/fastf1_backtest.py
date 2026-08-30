@@ -221,9 +221,77 @@ class BacktestingEngine:
             )
             berlin_laps.append(state.model_dump())
 
+        # 3. Silverstone 2024 — Hamilton vs Norris crossover tyre degradation window
+        silverstone_laps = []
+        for lap in range(1, 46):
+            laps_rem = 45 - lap
+
+            # Silverstone energy dynamics:
+            # Laps 1-10: Conservative opening stint on Softs (Norris leads, gap ~1.6s)
+            # Laps 11-22: Closing delta as soft tyres degrade — Hamilton pushes hard
+            # Laps 22: Pit window — Hamilton pits for Hard, Norris stays out on worn Soft
+            # Laps 23-35: Undercut working — Hamilton closes with fresher tyres
+            # Laps 36-45: Final sprint, Hamilton vs Norris at DRS range
+            if lap <= 10:
+                energy_pct = max(2.0, min(100.0, 100.0 - (lap * 2.0)))
+            elif 11 <= lap <= 22:
+                # Pushing hard to close gap before pit window
+                energy_pct = max(2.0, min(100.0, 100.0 - (lap * 2.1) - 1.5))
+            elif 23 <= lap <= 35:
+                # Post-pit on fresh Hards — slightly more efficient
+                energy_pct = max(2.0, min(100.0, 100.0 - (lap * 1.98) + 2.0))
+            else:
+                # Final sprint — maximum deployment
+                energy_pct = max(2.0, min(100.0, 100.0 - (lap * 2.05) - 0.8))
+
+            # Gap curve: opens then closes through undercut
+            if lap <= 10:
+                gap_ahead = 1.6 - (lap * 0.04)  # slowly closing
+            elif 11 <= lap <= 22:
+                gap_ahead = max(0.4, 1.2 - (lap - 10) * 0.07)  # rapid close
+            elif lap == 22:
+                gap_ahead = 2.8  # pit stop creates large gap temporarily
+            elif 23 <= lap <= 35:
+                gap_ahead = max(0.3, 2.8 - (lap - 22) * 0.17)  # undercut closing
+            else:
+                gap_ahead = max(0.28, 0.52 - (lap - 35) * 0.015)  # DRS battle
+
+            gap_behind = 2.5 if lap < 22 else (0.6 if lap < 28 else 1.8)
+            # Tyre wear: soft compound degrades faster, hard much slower
+            if lap <= 22:
+                wear = min(92.0, lap * 4.1)  # Soft tyre — high wear
+            else:
+                wear = min(80.0, 10.0 + (lap - 22) * 2.2)  # Hard tyre — fresh
+            compound = "soft" if lap <= 22 else "hard"
+            pos = 2
+            drs_m = 100 if gap_ahead <= 1.0 else 350
+
+            state = RaceState(
+                lap_number=lap,
+                laps_remaining=laps_rem,
+                energy_pct=round(energy_pct, 1),
+                energy_used_this_lap_kwh=1.06 if lap <= 22 else 0.98,
+                max_energy_per_lap_kwh=4.0,
+                total_energy_budget_kwh=52.0,
+                total_energy_used_kwh=round(lap * 1.04, 2),
+                gap_ahead_sec=round(max(0.1, gap_ahead), 2),
+                gap_behind_sec=round(gap_behind, 2),
+                tyre_wear_pct=round(wear, 1),
+                tyre_compound=compound,
+                track_position=pos,
+                in_attack_mode_zone=(lap in [18, 19, 20, 38, 39, 40]),
+                attack_mode_available=(lap <= 40),
+                drs_zone_ahead_m=drs_m,
+                sector=(lap % 3) + 1,
+                recent_gaps_ahead=[round(max(0.1, gap_ahead + 0.1), 2), round(max(0.1, gap_ahead + 0.06), 2),
+                                   round(max(0.1, gap_ahead + 0.02), 2), round(max(0.1, gap_ahead), 2)],
+                rival_driver_name="Lando Norris (P1)",
+            )
+            silverstone_laps.append(state.model_dump())
+
         return {
             "monza_2023_battle": monza_laps,
-            "silverstone_2024_undercut": monza_laps[:45],
+            "silverstone_2024_undercut": silverstone_laps,
             "berlin_eprix_gen3": berlin_laps,
         }
 

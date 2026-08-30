@@ -314,10 +314,13 @@ export default function StrategySandbox({
                 outline: "none",
               }}
             >
-              <option value="Max Verstappen (P1)">Max Verstappen (Defensive)</option>
-              <option value="Lando Norris (P2)">Lando Norris (Aggressive)</option>
-              <option value="Lewis Hamilton (P3)">Lewis Hamilton (Adaptive)</option>
-              <option value="Mitch Evans (P2)">Mitch Evans (Formula E Attack Mode)</option>
+              <option value="Max Verstappen">Max Verstappen (Defensive)</option>
+              <option value="Max Verstappen (P1)">Max Verstappen P1 (Defensive)</option>
+              <option value="Lando Norris">Lando Norris (Aggressive)</option>
+              <option value="Charles Leclerc">Charles Leclerc (Balanced)</option>
+              <option value="Lewis Hamilton">Lewis Hamilton (Adaptive)</option>
+              <option value="George Russell">George Russell (Aggressive)</option>
+              <option value="Mitch Evans (P2)">Mitch Evans (Formula E)</option>
             </select>
           </div>
         </div>

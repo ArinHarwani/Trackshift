@@ -27,8 +27,8 @@ const DEFAULT_STATE = {
   attack_mode_available: true,
   drs_zone_ahead_m: 120,
   sector: 2,
-  recent_gaps_ahead: [0.65, 0.52, 0.44, 0.38],
-  rival_driver_name: "Max Verstappen (P3)",
+  recent_gaps_ahead: [0.65, 0.52, 0.44, 0.40, 0.38],
+  rival_driver_name: "Max Verstappen",
 };
 
 export default function App() {

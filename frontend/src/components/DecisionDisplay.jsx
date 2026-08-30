@@ -58,8 +58,8 @@ export default function DecisionDisplay({ strategyOutput, raceState }) {
               <span
                 className="font-display"
                 style={{
-                  background: isOptimal ? "var(--purple-optimal)" : isConserve ? "var(--yellow-caution)" : "var(--surface-panel-hover)",
-                  color: isOptimal ? "#fff" : isConserve ? "#0A0C0F" : "var(--text-primary)",
+                  background: isConserve ? "var(--yellow-caution)" : isOptimal ? "var(--purple-optimal)" : "var(--surface-panel-hover)",
+                  color: isConserve ? "#0A0C0F" : isOptimal ? "#fff" : "var(--text-primary)",
                   fontWeight: 900,
                   fontSize: "0.7rem",
                   padding: "3px 8px",
@@ -67,7 +67,7 @@ export default function DecisionDisplay({ strategyOutput, raceState }) {
                   letterSpacing: "0.08em",
                 }}
               >
-                {isOptimal ? "PURPLE // OPTIMAL CALL" : isConserve ? "CAUTION // CONSERVATION" : "BALANCED STRATEGY"}
+              {isConserve ? "CAUTION // CONSERVATION" : isOptimal ? "PURPLE // OPTIMAL CALL" : "BALANCED STRATEGY"}
               </span>
 
               <span

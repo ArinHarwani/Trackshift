@@ -95,23 +95,24 @@ class StrategyAgent:
         overtake_out: OvertakeAgentOutput,
         rules_out: RulesAgentOutput,
     ) -> str:
-        """Generates punchy pit-wall order headline."""
+        """Generates punchy pit-wall order headline — always uppercase F1 broadcast style."""
         if not rules_out.compliant:
-            return f"HOLD: Technical limit breach prevention ({rules_out.violations[0].split(':')[0]})"
+            rule_code = rules_out.violations[0].split(":")[0] if rules_out.violations else "TECH LIMIT"
+            return f"HOLD: Technical Limit Breach Prevention ({rule_code})"
 
         if energy_out.recommended_action == "conserve":
-            return f"Lift & Coast Mode: Conserve {abs(energy_out.recommended_deploy_pct)}% to protect delta"
+            return f"LIFT & COAST MODE: Conserve {abs(energy_out.recommended_deploy_pct):.1f}% to Protect Delta"
 
         if overtake_out.overtake_recommended and overtake_out.best_window == "this_lap":
-            return f"Deploy +{energy_out.recommended_deploy_pct}% energy boost for overtake THIS LAP"
+            return f"DEPLOY +{energy_out.recommended_deploy_pct:.1f}% Energy Boost for Overtake THIS LAP"
 
         if overtake_out.overtake_recommended:
-            return f"Deploy +{energy_out.recommended_deploy_pct}% boost: Prepare attack within next 2 laps"
+            return f"DEPLOY +{energy_out.recommended_deploy_pct:.1f}% Boost: Prepare Attack Within Next 2 Laps"
 
         if energy_out.recommended_action == "deploy":
-            return f"Harvest & Charge: Deploy +{energy_out.recommended_deploy_pct}% in Attack Zone"
+            return f"HOLD FORMATION: Deploy +{energy_out.recommended_deploy_pct:.1f}% in Attack Zone"
 
-        return f"Maintain Hybrid Mode: Target {state.gap_ahead_sec:.1f}s gap, conserve tyre life"
+        return f"MAINTAIN HYBRID MODE: Target {state.gap_ahead_sec:.1f}s Gap, Conserve Tyre Life"
 
     def get_gemini_prompt(
         self,
@@ -160,13 +161,13 @@ class StrategyAgent:
             return None
 
         try:
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={self.api_key}"
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key={self.api_key}"
             payload = {
                 "system_instruction": {"parts": [{"text": system_prompt}]},
                 "contents": [{"parts": [{"text": user_prompt}]}],
                 "generationConfig": {"temperature": 0.2, "maxOutputTokens": 150},
             }
-            with httpx.Client(timeout=3.0) as client:
+            with httpx.Client(timeout=4.0) as client:
                 res = client.post(url, json=payload)
                 if res.status_code == 200:
                     data = res.json()
@@ -174,8 +175,8 @@ class StrategyAgent:
                     if candidates:
                         text = candidates[0]["content"]["parts"][0]["text"].strip()
                         return text
-        except Exception as e:
-            # Silent fallback to template
+        except Exception:
+            # Silent fallback to deterministic template
             pass
 
         return None
