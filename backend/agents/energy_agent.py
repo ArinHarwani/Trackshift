@@ -45,17 +45,17 @@ class EnergyAgent:
             risk = "low"
 
         # Determine action & deploy %
-        if risk == "high" or energy_margin_pct < -8.0:
+        if risk == "high" or energy_margin_pct < -2.5:
             recommended_action = "conserve"
             # Lift and coast severity
-            deploy_pct = max(-25.0, round(-8.0 + (energy_margin_pct * 0.5), 1))
+            deploy_pct = max(-25.0, round(-6.0 + (energy_margin_pct * 0.7), 1))
             reason_code = "energy_deficit_requires_lift_and_coast"
             details = (
                 f"Energy deficit of {abs(energy_margin_pct):.1f}% vs target. "
                 f"Laps of reserve ({laps_of_reserve:.1f}) is below remaining laps ({laps_left}). "
                 f"Mandatory lift-and-coast recommended to preserve delta."
             )
-        elif (energy_margin_pct >= 5.0 and (state.gap_ahead_sec <= 1.2 or state.in_attack_mode_zone or laps_left <= 4)) or (energy_margin_pct >= 20.0):
+        elif (energy_margin_pct >= 3.0 and (state.gap_ahead_sec <= 1.2 or state.in_attack_mode_zone or laps_left <= 4)) or (energy_margin_pct >= 15.0):
             recommended_action = "deploy"
             # Deploy boost calculation
             base_boost = 12.0 + min(15.0, energy_margin_pct * 0.35)

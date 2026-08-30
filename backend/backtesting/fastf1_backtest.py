@@ -78,8 +78,14 @@ class BacktestingEngine:
                 tyre_life = float(lap.get("TyreLife", 1.0))
                 tyre_wear = min(92.0, tyre_life * 3.8)
 
-                # Proxied energy percentage (E-Prix / Hybrid ERS curve)
-                energy_pct = max(2.0, min(100.0, 100.0 - (lap_no * (100.0 / total_laps) * 0.95)))
+                # Proxied energy percentage (E-Prix / Hybrid ERS curve with post-defense recharge phase)
+                if 16 <= lap_no <= 22:
+                    # Recharge/lift-and-coast phase after defending against Verstappen
+                    energy_pct = max(2.0, min(100.0, 100.0 - (lap_no * (100.0 / total_laps) * 0.95) - 5.0))
+                elif 10 <= lap_no <= 15:
+                    energy_pct = max(2.0, min(100.0, 100.0 - (lap_no * (100.0 / total_laps) * 0.95) + 2.5))
+                else:
+                    energy_pct = max(2.0, min(100.0, 100.0 - (lap_no * (100.0 / total_laps) * 0.95)))
 
                 # Gap ahead estimation: lap 10-15 battle delta ~0.45s, post pit window ~2.2s
                 if 10 <= lap_no <= 15:
@@ -121,10 +127,26 @@ class BacktestingEngine:
 
     def _build_curated_scenarios(self) -> Dict[str, List[Dict[str, Any]]]:
         """Pre-extracted FastF1 session datasets for guaranteed offline/demo reliability."""
+        # 1. Monza 2023 Battle Scenario
         monza_laps = []
         for lap in range(1, 52):
             laps_rem = 51 - lap
-            energy_pct = max(2.0, min(100.0, 100.0 - (lap * 1.92) + (1.2 if lap % 4 == 0 else -0.5)))
+            
+            # Realistic ERS State of Charge:
+            # Laps 1-9: Steady hybrid pace (~98% to 80%)
+            # Laps 10-15: Intense defense vs Verstappen with maximum ERS deployment (causes temporary deficit)
+            # Laps 16-22: Post-defense battery recovery / lift-and-coast phase (energy deficit margin ~ -4%)
+            # Laps 23-45: Balanced second stint on Hard tyres
+            # Laps 46-51: Final battle sprint
+            if 16 <= lap <= 22:
+                # Post-defense deficit phase (needs lift and coast)
+                energy_pct = max(2.0, min(100.0, 100.0 - (lap * 1.95) - 3.2))
+            elif 10 <= lap <= 15:
+                # Heavy attack/defend phase
+                energy_pct = max(2.0, min(100.0, 100.0 - (lap * 1.90) + 2.0))
+            else:
+                energy_pct = max(2.0, min(100.0, 100.0 - (lap * 1.92) + (1.0 if lap % 4 == 0 else -0.4)))
+
             gap_ahead = 0.45 if 10 <= lap <= 16 else (1.2 if lap < 10 else 2.4 + (lap - 16) * 0.1)
             gap_behind = 1.6 if lap <= 15 else 0.85
             wear = min(88.0, lap * 1.7)
@@ -154,10 +176,24 @@ class BacktestingEngine:
             )
             monza_laps.append(state.model_dump())
 
+        # 2. Berlin Formula E Gen3 Scenario
         berlin_laps = []
         for lap in range(1, 41):
             laps_rem = 40 - lap
-            energy_pct = max(3.0, min(100.0, 100.0 - (lap * 2.42) + (3.5 if lap <= 18 else -1.0)))
+            
+            # Formula E energy dynamics:
+            # Laps 1-18: Early slipstream management (+3.5% energy surplus)
+            # Laps 19-25: 50kW Attack Mode overdrive burns reserve down
+            # Laps 26-33: Battery deficit recovery — driver must lift-and-coast to avoid clipping
+            # Laps 34-40: Final sprint to checkered flag
+            if 26 <= lap <= 33:
+                # Deficit recovery phase after attack mode
+                energy_pct = max(3.0, min(100.0, 100.0 - (lap * 2.50) - 2.8))
+            elif lap <= 18:
+                energy_pct = max(3.0, min(100.0, 100.0 - (lap * 2.38) + 3.2))
+            else:
+                energy_pct = max(3.0, min(100.0, 100.0 - (lap * 2.45) - 0.5))
+
             gap_ahead = 0.38 if 20 <= lap <= 28 else (0.85 if lap < 20 else 1.5)
             gap_behind = 1.4
             wear = min(65.0, lap * 1.6)

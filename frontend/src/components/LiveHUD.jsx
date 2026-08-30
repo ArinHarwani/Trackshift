@@ -89,14 +89,14 @@ export default function LiveHUD({ state, energyAgentOut, overtakeAgentOut }) {
           <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "4px" }}>
             <BatteryCharging size={16} color={energyColor} />
             <span className="font-display" style={{ fontSize: "0.85rem", fontWeight: 700, color: "#fff" }}>
-              ERS Battery Reserve
+              ERS Battery SoC %
             </span>
           </div>
-          <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", lineHeight: "1.4" }}>
-            Total Budget: <strong style={{ color: "#fff" }}>{state.total_energy_budget_kwh} kWh</strong>
+          <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", lineHeight: "1.4" }}>
+            FIA Cap: <strong style={{ color: "#fff" }}>{state.total_energy_budget_kwh} kWh</strong> | Used: <strong style={{ color: "var(--neon-amber)" }}>{state.total_energy_used_kwh} kWh</strong>
           </p>
-          <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "2px" }}>
-            Used: <strong style={{ color: "var(--neon-amber)" }}>{state.total_energy_used_kwh} kWh</strong>
+          <p style={{ fontSize: "0.68rem", color: "var(--text-dim)", marginTop: "2px" }}>
+            Remaining Allocation: <strong style={{ color: "var(--neon-cyan)" }}>{(state.total_energy_budget_kwh - state.total_energy_used_kwh).toFixed(1)} kWh</strong>
           </p>
           {energyAgentOut && (
             <div style={{
