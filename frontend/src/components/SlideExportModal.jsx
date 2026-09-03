@@ -27,7 +27,7 @@ Track: Energy & Overtake Intelligence (TrackShift 2026)
  ┌─────────┴─────────┬───────────────────┬──────────────────┐
  ▼                   ▼                   ▼                  ▼
 [ Energy Agent ]   [ Overtake Agent ]  [ Rules Agent ]    [ Opponent Agent ]
-• Reserve target   • Gap closing math  • FIA Art 34.2     • Rolling variance
+• Reserve target   • Gap closing math  • Per-lap cap      • Rolling variance
 • kWh per lap      • DRS & Attack mode • Total budget cap • Defensive profile
  └─────────┬─────────┴───────────────────┴──────────────────┘
            ▼
@@ -51,7 +51,7 @@ Composite_Score = (0.45 × P_overtake) + (0.25 × Pos_gain) - (0.15 × Energy_ri
    Margin_% = ((Target - Nominal) / Nominal) × 100
 
 3. Rules Compliance:
-   Ensures Single_Lap_Draw <= 4.0 kWh (FIA Formula E Gen3 Article 34.2)`,
+   Ensures Single_Lap_Draw <= 4.0 kWh (Per-Lap Technical Energy Cap)`,
     },
     {
       id: "slide4",
@@ -61,7 +61,7 @@ Composite_Score = (0.45 × P_overtake) + (0.25 × Pos_gain) - (0.15 × Energy_ri
 • Validated against real Formula 1 & Formula E Grand Prix telemetry via FastF1 (Monza, Silverstone, Berlin Tempelhof E-Prix).
 • 92.4% Strategy Agreement Rate with real-world race outcomes.
 • Estimated +1.84s time delta saved over race distance via optimized energy deployment.
-• 100% compliance with FIA Article 34.2 per-lap energy limits.`,
+• 100% compliance with regulated per-lap energy limits.`,
     },
     {
       id: "slide5",

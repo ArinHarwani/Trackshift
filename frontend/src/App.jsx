@@ -6,6 +6,8 @@ import StrategySandbox from "./components/StrategySandbox";
 import AgentInspector from "./components/AgentInspector";
 import RaceSimulator from "./components/RaceSimulator";
 import BacktestStudio from "./components/BacktestStudio";
+import LandingGate from "./components/LandingGate";
+import SimpleCockpit from "./components/SimpleCockpit";
 import pitRadio from "./utils/audioSynth";
 
 const API_BASE = "http://localhost:8000/api";
@@ -32,7 +34,17 @@ const DEFAULT_STATE = {
 };
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState("sandbox"); // "sandbox" | "simulator" | "backtest"
+  // Experience mode: "gate" (First screen seen) | "simple" (Default cockpit) | "expert" (Full telemetry)
+  const [viewMode, setViewMode] = useState("gate");
+  const [visitorName, setVisitorName] = useState(() => {
+    try {
+      return localStorage.getItem("trackshift_visitor_name") || "";
+    } catch {
+      return "";
+    }
+  });
+
+  const [activeTab, setActiveTab] = useState("sandbox"); // "sandbox" | "simulator" | "backtest" in Expert Mode
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [isCalculating, setIsCalculating] = useState(false);
 
@@ -96,7 +108,7 @@ export default function App() {
         .then((data) => {
           setStrategyOutput(data);
           // Keep lights on briefly for authentic 5-red-lights sequence
-          setTimeout(() => setIsCalculating(false), 280);
+          setTimeout(() => setIsCalculating(false), 240);
         })
         .catch((err) => {
           console.error("Strategy fetch error:", err);
@@ -174,9 +186,29 @@ export default function App() {
     setSandboxState(DEFAULT_STATE);
   };
 
+  // Handle entering cockpit from Landing / Gate screen
+  const handleEnterCockpit = (name) => {
+    setVisitorName(name);
+    try {
+      localStorage.setItem("trackshift_visitor_name", name);
+    } catch {}
+    setViewMode("simple");
+  };
+
   const activeDisplayState = activeTab === "simulator" ? simState : sandboxState;
   const activeDisplayStrategy = activeTab === "simulator" ? simStrategy || strategyOutput : strategyOutput;
 
+  // 1. GATE / LANDING SCREEN (First thing anyone sees)
+  if (viewMode === "gate") {
+    return (
+      <LandingGate
+        onEnterCockpit={handleEnterCockpit}
+        initialName={visitorName}
+      />
+    );
+  }
+
+  // 2. COCKPIT (Simple View or Expert Mode)
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "var(--bg-asphalt)" }}>
       {/* 1. Persistent Dense F1 Timing Tower Ribbon */}
@@ -188,75 +220,96 @@ export default function App() {
         setActiveTab={setActiveTab}
         soundEnabled={soundEnabled}
         setSoundEnabled={setSoundEnabled}
+        viewMode={viewMode}
+        setViewMode={setViewMode}
+        onGoToGate={() => setViewMode("gate")}
       />
 
-      {/* 3. Main Dashboard Body */}
+      {/* 3. Main Body */}
       <main style={{ flex: 1, padding: "20px 24px 40px", maxWidth: "1500px", margin: "0 auto", width: "100%" }}>
-        {/* Tab 1: Strategy Sandbox (Primary Pit-Wall Dashboard) */}
-        {activeTab === "sandbox" && (
-          <>
-            {/* Hero Zone: ONE dominant asymmetric 60/40 recommendation panel */}
-            <DecisionDisplay
-              strategyOutput={strategyOutput}
-              raceState={sandboxState}
-            />
-
-            {/* Interactive Telemetry Manipulator */}
-            <StrategySandbox
-              state={sandboxState}
-              strategyOutput={strategyOutput}
-              onChangeState={(newState) => {
-                setActivePresetId(null);
-                setSandboxState(newState);
-              }}
-              presets={presets}
-              onSelectPreset={handleSelectPreset}
-              activePresetId={activePresetId}
-              onReset={handleResetSandbox}
-            />
-
-            {/* Collapsible Strategy Breakdown Accordion */}
-            <AgentInspector
-              rawAgentOutputs={strategyOutput?.raw_agent_outputs}
-              scoringBreakdown={strategyOutput?.scoring_breakdown}
-              compositeScore={strategyOutput?.composite_score}
-            />
-          </>
-        )}
-
-        {/* Tab 2: Live Telemetry Race Simulator */}
-        {activeTab === "simulator" && (
-          <>
-            <DecisionDisplay
-              strategyOutput={simStrategy || strategyOutput}
-              raceState={simState}
-            />
-
-            <RaceSimulator
-              simState={simState}
-              simStrategy={simStrategy}
-              onStep={handleSimStep}
-              onReset={handleSimReset}
-              history={simHistory}
-            />
-
-            <AgentInspector
-              rawAgentOutputs={(simStrategy || strategyOutput)?.raw_agent_outputs}
-              scoringBreakdown={(simStrategy || strategyOutput)?.scoring_breakdown}
-              compositeScore={(simStrategy || strategyOutput)?.composite_score}
-            />
-          </>
-        )}
-
-        {/* Tab 3: FastF1 Real Race Backtesting Studio */}
-        {activeTab === "backtest" && (
-          <BacktestStudio
-            scenarios={scenarios}
-            selectedScenarioId={selectedScenarioId}
-            onSelectScenario={handleSelectScenario}
-            backtestReport={backtestReport}
-            loading={isCalculating}
+        {/* SIMPLE VIEW (Default Experience after entering) */}
+        {viewMode === "simple" && (
+          <SimpleCockpit
+            raceState={sandboxState}
+            strategyOutput={strategyOutput}
+            onSwitchToExpert={() => setViewMode("expert")}
+            presets={presets}
+            activePresetId={activePresetId}
+            onSelectPreset={handleSelectPreset}
+            visitorName={visitorName}
           />
+        )}
+
+        {/* EXPERT MODE (Reveals the existing complete 3-tab dashboard) */}
+        {viewMode === "expert" && (
+          <>
+            {/* Tab 1: Strategy Sandbox (Primary Pit-Wall Dashboard) */}
+            {activeTab === "sandbox" && (
+              <>
+                {/* Hero Zone: ONE dominant asymmetric 60/40 recommendation panel */}
+                <DecisionDisplay
+                  strategyOutput={strategyOutput}
+                  raceState={sandboxState}
+                />
+
+                {/* Interactive Telemetry Manipulator */}
+                <StrategySandbox
+                  state={sandboxState}
+                  strategyOutput={strategyOutput}
+                  onChangeState={(newState) => {
+                    setActivePresetId(null);
+                    setSandboxState(newState);
+                  }}
+                  presets={presets}
+                  onSelectPreset={handleSelectPreset}
+                  activePresetId={activePresetId}
+                  onReset={handleResetSandbox}
+                />
+
+                {/* Collapsible Strategy Breakdown Accordion */}
+                <AgentInspector
+                  rawAgentOutputs={strategyOutput?.raw_agent_outputs}
+                  scoringBreakdown={strategyOutput?.scoring_breakdown}
+                  compositeScore={strategyOutput?.composite_score}
+                />
+              </>
+            )}
+
+            {/* Tab 2: Live Telemetry Race Simulator */}
+            {activeTab === "simulator" && (
+              <>
+                <DecisionDisplay
+                  strategyOutput={simStrategy || strategyOutput}
+                  raceState={simState}
+                />
+
+                <RaceSimulator
+                  simState={simState}
+                  simStrategy={simStrategy}
+                  onStep={handleSimStep}
+                  onReset={handleSimReset}
+                  history={simHistory}
+                />
+
+                <AgentInspector
+                  rawAgentOutputs={(simStrategy || strategyOutput)?.raw_agent_outputs}
+                  scoringBreakdown={(simStrategy || strategyOutput)?.scoring_breakdown}
+                  compositeScore={(simStrategy || strategyOutput)?.composite_score}
+                />
+              </>
+            )}
+
+            {/* Tab 3: FastF1 Real Race Backtesting Studio */}
+            {activeTab === "backtest" && (
+              <BacktestStudio
+                scenarios={scenarios}
+                selectedScenarioId={selectedScenarioId}
+                onSelectScenario={handleSelectScenario}
+                backtestReport={backtestReport}
+                loading={isCalculating}
+              />
+            )}
+          </>
         )}
       </main>
     </div>

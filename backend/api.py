@@ -59,6 +59,12 @@ class BacktestRunRequest(BaseModel):
     race: Optional[str] = None
 
 
+class VisitorLogRequest(BaseModel):
+    name: Optional[str] = "Anonymous Judge"
+    timestamp: Optional[str] = None
+    user_agent: Optional[str] = None
+
+
 @app.get("/api/health")
 def health_check():
     return {
@@ -68,6 +74,43 @@ def health_check():
         "llm_provider": "Gemini 2.5 (High) / Zero-latency Template Engine",
         "math_engine": "Deterministic Multi-Agent Core",
     }
+
+
+@app.post("/api/log-visitor")
+def log_visitor(req: VisitorLogRequest):
+    """
+    Logs visitor name and timestamp for hackathon demo tracking.
+    Persists to data/visitors.json.
+    """
+    import json
+    from datetime import datetime, timezone
+
+    data_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
+    os.makedirs(data_dir, exist_ok=True)
+    visitors_file = os.path.join(data_dir, "visitors.json")
+
+    timestamp = req.timestamp or datetime.now(timezone.utc).isoformat()
+    record = {
+        "name": req.name.strip() if req.name else "Anonymous Judge",
+        "timestamp": timestamp,
+        "user_agent": req.user_agent or "Browser",
+    }
+
+    try:
+        visitors = []
+        if os.path.exists(visitors_file):
+            try:
+                with open(visitors_file, "r", encoding="utf-8") as f:
+                    visitors = json.load(f)
+            except Exception:
+                visitors = []
+        visitors.append(record)
+        with open(visitors_file, "w", encoding="utf-8") as f:
+            json.dump(visitors, f, indent=2)
+    except Exception as e:
+        print(f"[VisitorLog] Non-fatal log write error: {e}")
+
+    return {"status": "logged", "record": record}
 
 
 @app.post("/api/strategy", response_model=StrategyAgentOutput)
@@ -301,7 +344,7 @@ def get_sandbox_presets():
             "id": "fia_rule_violation_prevention",
             "name": "Scenario 5: FIA Energy Cap Breach Prevention",
             "badge": "RULE ENFORCEMENT",
-            "description": "Car has already consumed 3.7 kWh this lap. Any deploy > 0.3 kWh will breach Article 34.2.",
+            "description": "Car has already consumed 3.7 kWh this lap. Any deploy > 0.3 kWh will breach the per-lap energy cap.",
             "state": {
                 "lap_number": 30,
                 "laps_remaining": 15,

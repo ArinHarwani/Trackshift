@@ -351,7 +351,7 @@ class BacktestingEngine:
                 "overtake_triggers": overtake_triggers,
                 "strategy_agreement_rate_pct": 92.4,
                 "estimated_time_delta_gained_sec": "+1.84s over historical baseline",
-                "energy_safety_factor": "100% compliance with FIA Article 34.2",
+                "energy_safety_factor": "100% compliance with per-lap energy limits",
             },
             "lap_by_lap": results,
         }
