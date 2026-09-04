@@ -51,12 +51,12 @@ export default function Navbar({
           style={{
             width: "32px",
             height: "32px",
-            borderRadius: "4px",
+            borderRadius: "3px",
             background: "var(--purple-optimal)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            boxShadow: "0 0 12px rgba(192, 76, 253, 0.4)",
+            boxShadow: "0 0 12px var(--purple-glow)",
           }}
         >
           <Zap size={18} color="#fff" strokeWidth={2.5} />
@@ -65,15 +65,15 @@ export default function Navbar({
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             <span
               className="font-display"
-              style={{ fontSize: "1.15rem", fontWeight: 900, color: "var(--text-primary)" }}
+              style={{ fontSize: "1.15rem", fontWeight: 900, color: "var(--text-primary)", letterSpacing: "0.04em" }}
             >
               TRACKSHIFT <span style={{ color: "var(--purple-optimal)" }}>COPILOT</span>
             </span>
             <span
-              className="font-display"
+              className="font-mono"
               style={{
                 fontSize: "0.62rem",
-                background: viewMode === "expert" ? "rgba(192, 76, 253, 0.15)" : "rgba(255,255,255,0.06)",
+                background: viewMode === "expert" ? "rgba(168, 85, 247, 0.15)" : "rgba(255,255,255,0.06)",
                 color: viewMode === "expert" ? "var(--purple-optimal)" : "var(--text-secondary)",
                 border: "1px solid var(--border-subtle)",
                 padding: "2px 8px",
@@ -82,13 +82,13 @@ export default function Navbar({
                 letterSpacing: "0.06em",
               }}
             >
-              {viewMode === "expert" ? "EXPERT MODE // FULL TELEMETRY" : "SIMPLE COCKPIT"}
+              {viewMode === "expert" ? "EXPERT MODE // FULL TELEMETRY" : "DIRECTIVE CONSOLE"}
             </span>
           </div>
           <p style={{ fontSize: "0.7rem", color: "var(--text-secondary)", margin: 0 }}>
             {viewMode === "expert"
               ? "Deterministic Multi-Agent Engine // Formula E & F1 Architecture"
-              : "Real-Time AI Overtake & Energy Intelligence"}
+              : "Autonomous Overtake Probability & Energy Intelligence"}
           </p>
         </div>
       </div>
@@ -102,7 +102,7 @@ export default function Navbar({
             gap: "4px",
             background: "var(--surface-panel-subtle)",
             padding: "3px",
-            borderRadius: "4px",
+            borderRadius: "3px",
             border: "1px solid var(--border-subtle)",
           }}
         >
@@ -146,10 +146,10 @@ export default function Navbar({
             onClick={() => setViewMode("expert")}
             className="font-display"
             style={{
-              background: "var(--surface-panel-subtle)",
+              background: "var(--surface-panel-card)",
               color: "var(--text-primary)",
               border: "1px solid var(--border-subtle)",
-              borderRadius: "4px",
+              borderRadius: "3px",
               padding: "6px 14px",
               fontSize: "0.75rem",
               fontWeight: 800,
@@ -157,13 +157,19 @@ export default function Navbar({
               display: "inline-flex",
               alignItems: "center",
               gap: "6px",
-              transition: "border-color 0.15s",
+              transition: "all 0.15s ease",
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.borderColor = "var(--purple-optimal)")}
-            onMouseLeave={(e) => (e.currentTarget.style.borderColor = "var(--border-subtle)")}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = "var(--purple-optimal)";
+              e.currentTarget.style.color = "#FFFFFF";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = "var(--border-subtle)";
+              e.currentTarget.style.color = "var(--text-primary)";
+            }}
           >
             <Sliders size={13} color="var(--purple-optimal)" />
-            <span>Show Full Telemetry (Expert Mode)</span>
+            <span>Expand Full Telemetry (Expert Mode)</span>
           </button>
         </div>
       )}
@@ -176,10 +182,10 @@ export default function Navbar({
             onClick={() => setViewMode("simple")}
             className="font-display"
             style={{
-              background: "rgba(192, 76, 253, 0.12)",
+              background: "rgba(168, 85, 247, 0.12)",
               color: "var(--purple-optimal)",
-              border: "1px solid rgba(192, 76, 253, 0.3)",
-              borderRadius: "4px",
+              border: "1px solid rgba(168, 85, 247, 0.3)",
+              borderRadius: "3px",
               padding: "6px 12px",
               fontSize: "0.74rem",
               fontWeight: 800,
@@ -187,10 +193,19 @@ export default function Navbar({
               display: "inline-flex",
               alignItems: "center",
               gap: "6px",
+              transition: "all 0.15s ease",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "var(--purple-optimal)";
+              e.currentTarget.style.color = "#FFFFFF";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "rgba(168, 85, 247, 0.12)";
+              e.currentTarget.style.color = "var(--purple-optimal)";
             }}
           >
             <ChevronLeft size={14} />
-            <span>Return to Simple View</span>
+            <span>Return to Directive Console</span>
           </button>
         )}
 
@@ -211,10 +226,10 @@ export default function Navbar({
             onClick={onGoToGate}
             className="btn-f1"
             style={{ fontSize: "0.72rem", color: "var(--text-secondary)" }}
-            title="Return to Welcome & Stats Overview"
+            title="Return to System Mission Briefing"
           >
             <Home size={13} />
-            <span>Overview</span>
+            <span>Mission Briefing</span>
           </button>
         )}
       </div>

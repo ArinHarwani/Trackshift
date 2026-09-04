@@ -1,33 +1,40 @@
 /* =====================================================================
-   TrackShift Copilot — F1 / Formula E Pit-Wall Design System
-   Exact functional motorsport color hierarchy, tabular typography & chevrons
+   TrackShift Copilot — F1 / Formula E Pit-Wall Engineering Design System
+   Exact functional motorsport telemetry hierarchy, tabular figures & crisp elevation
    ===================================================================== */
 
 :root {
-  /* Functional Motorsport Color Roles */
-  --bg-asphalt: #0A0C0F;
-  --surface-panel: #15181D;
-  --surface-panel-subtle: #111418;
-  --surface-panel-hover: #1C2128;
+  /* Functional Motorsport Color Roles (Slate & Charcoal Depth) */
+  --bg-asphalt: #080A0D;
+  --surface-panel: #0F1318;
+  --surface-panel-subtle: #14181F;
+  --surface-panel-card: #171D26;
+  --surface-panel-hover: #1E2530;
   --border-subtle: rgba(255, 255, 255, 0.08);
   --border-active: rgba(255, 255, 255, 0.18);
+  --border-bright: rgba(255, 255, 255, 0.28);
 
-  /* Functional Status Colors (Strict Semantic Roles) */
-  --purple-optimal: #C04CFD;    /* Reserved ONLY for fastest / optimal recommendation */
-  --green-compliant: #39D98A;   /* Safe / compliant / healthy energy surplus */
-  --yellow-caution: #FFC93C;    /* Caution / marginal risk / tyre degradation */
-  --red-violation: #FF3B3B;     /* Danger / rule breach / critical battery */
+  /* Functional Status Signals (Strict Motorsport Semantic Roles) */
+  --purple-optimal: #A855F7;    /* Reserved ONLY for fastest / optimal recommendation */
+  --purple-glow: rgba(168, 85, 247, 0.25);
+  --green-compliant: #10B981;   /* Safe / compliant / healthy energy surplus */
+  --green-glow: rgba(16, 185, 129, 0.2);
+  --yellow-caution: #F59E0B;    /* Caution / marginal risk / tyre degradation */
+  --yellow-glow: rgba(245, 158, 11, 0.2);
+  --red-violation: #EF4444;     /* Danger / rule breach / critical battery */
+  --red-glow: rgba(239, 68, 68, 0.2);
+  --cyan-telemetry: #06B6D4;   /* Data stream / aerodynamic telemetry */
 
-  /* Text Colors */
-  --text-primary: #F2F4F7;
-  --text-secondary: #8B94A3;
-  --text-dim: #555E6D;
-  --text-inverse: #0A0C0F;
+  /* Text Roles */
+  --text-primary: #F8FAFC;
+  --text-secondary: #94A3B8;
+  --text-dim: #64748B;
+  --text-inverse: #080A0D;
 
   /* Typography Families */
-  --font-display: 'Titillium Web', sans-serif;
-  --font-body: 'Inter', sans-serif;
-  --font-mono: 'JetBrains Mono', 'Space Mono', monospace;
+  --font-display: 'Titillium Web', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Space Mono', 'Consolas', monospace;
 }
 
 * {
@@ -43,11 +50,12 @@ html, body {
   font-size: 14px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   min-height: 100vh;
   overflow-x: hidden;
 }
 
-/* Typography Classes */
+/* Typography Utilities */
 .font-display {
   font-family: var(--font-display);
   letter-spacing: 0.04em;
@@ -56,20 +64,29 @@ html, body {
 
 .font-mono {
   font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums lining-nums;
+  letter-spacing: -0.01em;
 }
 
-/* Motorsport Chevron Accents (Pit-Wall Speedboard & Kerb Stripes) */
+/* Subtle Technical Telemetry Mesh Pattern */
+.telemetry-grid-bg {
+  background-color: var(--bg-asphalt);
+  background-image: 
+    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+/* Motorsport Kerb Accent Stripes */
 .kerb-stripes {
   background: repeating-linear-gradient(
     -45deg,
-    #FF3B3B 0,
-    #FF3B3B 8px,
-    #F2F4F7 8px,
-    #F2F4F7 16px
+    #EF4444 0,
+    #EF4444 8px,
+    #F8FAFC 8px,
+    #F8FAFC 16px
   );
-  height: 3px;
+  height: 2.5px;
   width: 100%;
 }
 
@@ -80,7 +97,7 @@ html, body {
   margin: 16px 0;
   color: var(--text-dim);
   font-family: var(--font-display);
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -90,17 +107,17 @@ html, body {
   content: '';
   flex: 1;
   height: 1px;
-  background: linear-gradient(90deg, var(--border-active) 0%, transparent 100%);
+  background: linear-gradient(90deg, var(--border-subtle) 0%, transparent 100%);
 }
 
 /* Timing Tower Persistent Strip */
 .timing-tower-strip {
-  background: #0D1015;
+  background: #0B0E13;
   border-bottom: 1px solid var(--border-subtle);
   position: sticky;
   top: 0;
   z-index: 90;
-  padding: 6px 16px;
+  padding: 6px 20px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -120,6 +137,7 @@ html, body {
   font-weight: 700;
   font-size: 0.68rem;
   text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .timing-cell-val {
@@ -135,26 +153,27 @@ html, body {
   border: 1px solid var(--border-subtle);
   border-radius: 4px;
   position: relative;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
 }
 
 .pit-panel-header {
   background: var(--surface-panel-subtle);
   border-bottom: 1px solid var(--border-subtle);
-  padding: 10px 14px;
+  padding: 10px 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
 .pit-panel-body {
-  padding: 16px;
+  padding: 18px;
 }
 
-/* Buttons */
+/* Refined Motorsport Buttons */
 .btn-f1 {
   font-family: var(--font-display);
   font-weight: 700;
-  font-size: 0.75rem;
+  font-size: 0.74rem;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   padding: 7px 14px;
@@ -163,39 +182,41 @@ html, body {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  transition: all 0.15s ease;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
   border: 1px solid var(--border-subtle);
-  background: var(--surface-panel);
+  background: var(--surface-panel-card);
   color: var(--text-primary);
 }
 
 .btn-f1:hover {
   background: var(--surface-panel-hover);
   border-color: var(--border-active);
+  color: #FFFFFF;
 }
 
 .btn-f1-purple {
   background: var(--purple-optimal);
-  color: #fff;
+  color: #FFFFFF;
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .btn-f1-purple:hover {
-  background: #aa3ee6;
+  background: #9333EA;
+  border-color: rgba(255, 255, 255, 0.35);
 }
 
 .btn-f1-active {
   background: var(--surface-panel-hover);
-  border-color: #F2F4F7;
-  color: #fff;
+  border-color: var(--purple-optimal);
+  color: #FFFFFF;
 }
 
-/* Custom Clean Sliders */
+/* Custom Clean Telemetry Sliders */
 input[type="range"] {
   -webkit-appearance: none;
   width: 100%;
   height: 4px;
-  background: #232832;
+  background: #1E2530;
   border-radius: 2px;
   outline: none;
   margin: 8px 0;
@@ -203,12 +224,12 @@ input[type="range"] {
 
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 14px;
-  height: 14px;
+  width: 13px;
+  height: 13px;
   border-radius: 2px;
-  background: #F2F4F7;
+  background: #F8FAFC;
   cursor: pointer;
-  border: 1px solid #15181D;
+  border: 1px solid #0F1318;
   transition: transform 0.1s ease, background 0.1s ease;
 }
 
@@ -228,20 +249,23 @@ input[type="range"]::-webkit-slider-thumb:hover {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #232832;
+  background: #1E2530;
   border-radius: 3px;
 }
 
+::-webkit-scrollbar-thumb:hover {
+  background: #2D3748;
+}
 
 /* Native Select Dark Theme */
 select {
-  background: var(--surface-panel) !important;
+  background: var(--surface-panel-card) !important;
   color: var(--text-primary);
   border: 1px solid var(--border-subtle);
   font-family: var(--font-display);
   -webkit-appearance: none;
   appearance: none;
-  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238B94A3' stroke-width='2'%3e%3cpolyline points='6 9 12 15 18 9'/%3e%3c/svg%3e") !important;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2'%3e%3cpolyline points='6 9 12 15 18 9'/%3e%3c/svg%3e") !important;
   background-repeat: no-repeat !important;
   background-position: right 8px center !important;
   background-size: 14px !important;
@@ -254,18 +278,18 @@ select:focus {
 }
 
 select option {
-  background: #15181D;
+  background: #14181F;
   color: var(--text-primary);
 }
 
-/* Overtake Visualizer Animations */
+/* Keyframe Animations */
 @keyframes thermalPulse {
   0% {
     transform: scale(1);
     opacity: 0.7;
   }
   50% {
-    transform: scale(1.35);
+    transform: scale(1.3);
     opacity: 1;
   }
   100% {
@@ -298,5 +322,20 @@ select option {
     transform: translateY(0);
   }
 }
+
+@keyframes flowSlipstream {
+  0% {
+    stroke-dashoffset: 24;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+.slipstream-vector {
+  stroke-dasharray: 6 4;
+  animation: flowSlipstream 0.5s linear infinite;
+}
+
 
 
